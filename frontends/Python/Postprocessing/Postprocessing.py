@@ -9,4 +9,5 @@ from readsol import readsol
 from readsoldmd import readsoldmd
 from readsolmpi import readsolmpi
 from readxdgmpi import readxdgmpi
-
+from readxdgsol import readxdgsolmpi
+from readmeshmpi import readmeshmpi
