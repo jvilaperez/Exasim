@@ -92,7 +92,7 @@ void randomfield(dstype *randvect, commonstruct &common, resstruct res, meshstru
     TemplateCopytoDevice(randvect, rvec, N, common.backend );   
             
     free(rvec);
-    
+
 #ifdef HAVE_MPI         
     int bsz = common.npe*common.ncu;
     
@@ -243,8 +243,8 @@ void setsysstruct(sysstruct &sys, commonstruct &common, resstruct res, meshstruc
     ArraySetValue(sys.v, 0.0, ndof*M);
         
     if (common.ncs>0) {        
-        TemplateMalloc(&sys.utmp, npe*common.ncs*common.ne2, backend); 
-        sys.szutmp = npe*common.ncs*common.ne2;
+        TemplateMalloc(&sys.utmp, npe*common.nc*common.ne2, backend); 
+        sys.szutmp = npe*common.nc*common.ne2;
         
         if (common.ncw>0) {
             //TemplateMalloc(&sys.w, N, backend); 
