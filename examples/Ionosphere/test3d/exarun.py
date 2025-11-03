@@ -7,6 +7,8 @@ exec(open(cdir[0:(ii+6)] + "/install/setpath.py").read())
 
 # import internal modules
 import Preprocessing, Postprocessing, Gencode, Mesh
+import netCDF4
+import interpolate
 
 # Create pde object and mesh object
 pde,mesh = Preprocessing.initializeexasim()
@@ -102,6 +104,33 @@ mesh['vdg'][:,2,:] = Bz
 mesh['vdg'][:,3,:] = 0.0    # Ex
 mesh['vdg'][:,4,:] = 0.0    # Ey
 mesh['vdg'][:,5,:] = 0.0    # Ez
+
+timeidx = 0
+data = netCDF4.Dataset(filename='/glade/work/haonan/regrid/sech.nc')
+lat = data['lat'][:].filled()
+lon = data['lon'][:].filled()
+alt3d = data['ZG'][timeidx, :, :, :].filled() * 1e-2
+varin = data['OP'][timeidx, :, :, :].filled()
+data.close()
+
+alt1d = numpy.unique(numpy.round(r*H0 - Re))
+nalt = len(alt1d)
+nlat = len(lat)
+nlon = len(lon)
+var_alt = numpy.ndarray(shape=(nalt, nlat, nlon))
+for ilat in range(nlat):
+    for ilon in range(nlon):
+        var_alt[:, ilat, ilon] = numpy.interp(alt1d, alt3d[:, ilat, ilon], varin[:, ilat, ilon])
+
+latitude = numpy.rad2deg(numpy.arcsin(x3 / r))
+longitude = numpy.rad2deg(numpy.arctan2(x2, x1))
+varout = numpy.empty_like(prototype=x1)
+for ialt in range(nalt):
+    onelayer = numpy.abs(r*H0 - Re - alt1d[ialt]) < 1
+    lat0 = latitude[onelayer]
+    lon0 = longitude[onelayer]
+    var0 = interpolate.interp2d(var_alt[ialt, :, :], lat, lon, lat0, lon0)
+    varout[onelayer] = var0
 
 # search compilers and set options
 pde = Gencode.setcompilers(pde)
