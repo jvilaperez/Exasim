@@ -27,20 +27,25 @@ def runcode(pde, numpde):
 
     if pde['platform'] == "cpu":
         if pde['mpiprocs'] == 1:
-            cmd = f"./cpuEXASIM {pdenum} {DataPath}/datain/ {DataPath}/dataout/out"
+            cmd = f"./cpuEXASIM {pdenum} {DataPath}/datain/ {DataPath}/dataout/out 2>&1 | tee -a {DataPath}/dataout/log.out"
         else:
-            cmd = f"{mpirun} -np {pde['mpiprocs']} ./cpumpiEXASIM {pdenum} {DataPath}/datain/ {DataPath}/dataout/out"
+            cmd = f"{mpirun} -np {pde['mpiprocs']} ./cpumpiEXASIM {pdenum} {DataPath}/datain/ {DataPath}/dataout/out 2>&1 | tee -a {DataPath}/dataout/log.out"
     elif pde['platform'] == "gpu":
         if pde['mpiprocs'] == 1:
-            cmd = f"./gpuEXASIM {pdenum} {DataPath}/datain/ {DataPath}/dataout/out"
+            cmd = f"./gpuEXASIM {pdenum} {DataPath}/datain/ {DataPath}/dataout/out 2>&1 | tee -a {DataPath}/dataout/log.out"
         else:
-            cmd = f"{mpirun} -np {pde['mpiprocs']} ./gpumpiEXASIM {pdenum} {DataPath}/datain/ {DataPath}/dataout/out"
+            cmd = f"{mpirun} -np {pde['mpiprocs']} ./gpumpiEXASIM {pdenum} {DataPath}/datain/ {DataPath}/dataout/out 2>&1 | tee -a {DataPath}/dataout/log.out"
 
     start_time = time.time()    
     subprocess.run(cmd, shell=True)    
     end_time = time.time()
     
-    print(f"Elapsed time: {end_time - start_time} seconds")
+    elapsed = end_time - start_time
+    print(f"Elapsed time: {elapsed:.2f} seconds")
+
+    # Also write to log file:
+    with open(f"{DataPath}/dataout/log.out", "a") as f:
+        f.write(f"\nElapsed time: {elapsed:.2f} seconds\n")
     
     os.chdir(cdir)
 
