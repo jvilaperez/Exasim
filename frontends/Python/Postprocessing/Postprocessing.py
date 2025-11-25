@@ -7,7 +7,7 @@ from exasim import exasim
 from producecode import producecode
 from readsol import readsol
 from readsoldmd import readsoldmd
-from readsolmpi import readsolmpi
+from readsolpart import readsolpart
 from readxdgmpi import readxdgmpi
 from readxdgsol import readxdgsolmpi
 from readmeshmpi import readmeshmpi

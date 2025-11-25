@@ -130,7 +130,7 @@ def plot_mesh_edges(xgrid, ax, color='k', lw=0.05):
 
 
 
-def plotslice(xcg2d,ucg2d, xgrid=None, coastlines=True, coastcolor='k', coastlw=0.5, color='w', lw=0.05):
+def plotslice(xcg2d,ucg2d, xgrid=None, coastlines=True, clim=None, coastcolor='k', coastlw=0.5, color='w', lw=0.05):
     ne = xcg2d.shape[2] # Extract number of elements
 
     # Collect all vertices and triangulate each polygon
@@ -146,7 +146,7 @@ def plotslice(xcg2d,ucg2d, xgrid=None, coastlines=True, coastcolor='k', coastlw=
         y = poly[:, 1]
         val = ucg2d[:, e]
         
-        # Triangulate the polygon (simple fan triangulation from first vertex)
+        # Triangulate the polygon (simple triangulation from first vertex)
         n = poly.shape[0]
         for i in range(1, n-1):
             triangles.append([offset, offset+i, offset+i+1])
@@ -166,12 +166,18 @@ def plotslice(xcg2d,ucg2d, xgrid=None, coastlines=True, coastcolor='k', coastlw=
 
     # Normalize colors
     cmap = cm.viridis
-    norm = plt.Normalize(vmin=all_vals.min(), vmax=all_vals.max())
+    if clim is not None:
+        vmin = clim[0]
+        vmax = clim[1]
+    else:
+        vmean = np.mean(all_vals)
+        vmin = np.min(all_vals)
+        vmax = np.max(all_vals)
 
-    # Plot using tripcolor with linear interpolation
+    # Plot using tripcolor with linear interpolation inside subelements
     fig, ax = plt.subplots(figsize=(10, 6),subplot_kw=dict(projection=PlateCarree()))
-    # ax.set_global()  # Sets extent to [-180, 180, -90, 90]
-    tpc = ax.tripcolor(triang, all_vals, shading='gouraud', cmap=cmap, norm=norm,transform=PlateCarree())
+
+    tpc = ax.tripcolor(triang, all_vals, shading='gouraud', cmap=cmap, transform=PlateCarree(), vmin=vmin, vmax=vmax)
 
     if coastlines:
         ax.coastlines(color=coastcolor, linewidth=coastlw)
@@ -184,7 +190,6 @@ def plotslice(xcg2d,ucg2d, xgrid=None, coastlines=True, coastcolor='k', coastlw=
     ax.set_ylim([-90, 90])
     ax.set_xlabel('Longitude')
     ax.set_ylabel('Latitude')
-    # ax.set_title('Field visualization on unstructured quad mesh')
 
     # Add colorbar
     fig.colorbar(tpc, ax=ax, shrink=0.7)
