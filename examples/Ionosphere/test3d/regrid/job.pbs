@@ -1,0 +1,44 @@
+#!/usr/bin/bash
+#PBS -l select=1:ncpus=64:mem=117gb:mpiprocs=1:ompthreads=64
+#PBS -l job_priority=premium
+#PBS -l walltime=00:10:00
+#PBS -A P54048000
+#PBS -q main
+#PBS -j oe
+
+#DEBUG=""
+
+cd $PBS_O_WORKDIR
+
+module --force purge
+module load ncarenv/23.09 intel cray-mpich netcdf-mpi mkl esmf parallel-netcdf parallelio
+
+ESMF_LIBSDIR=$(grep -Po '^ESMF_LIBSDIR=\K.*' $ESMFMKFILE)
+ESMF_F90COMPILEPATHS=$(grep -Po '^ESMF_F90COMPILEPATHS=\K.*' $ESMFMKFILE)
+ESMF_F90LINKPATHS=$(grep -Po '^ESMF_F90LINKPATHS=\K.*' $ESMFMKFILE)
+ESMF_F90ESMFLINKLIBS=$(grep -Po '^ESMF_F90ESMFLINKLIBS=\K.*' $ESMFMKFILE)
+
+export LD_LIBRARY_PATH+=":$NCAR_LDFLAGS_NETCDF:$ESMF_LIBSDIR:$NCAR_LDFLAGS_PARALLEL_NETCDF:$NCAR_LDFLAGS_PARALLELIO"
+
+EXEC=regrid.exe
+F90=mpifort
+FFLAGS="-traceback -I$NCAR_INC_NETCDF"
+FFLAGS+=" $ESMF_F90COMPILEPATHS"
+LDFLAGS="-L$NCAR_LDFLAGS_NETCDF -lnetcdff"
+LDFLAGS+=" -lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
+LDFLAGS+=" $ESMF_F90LINKPATHS $ESMF_F90ESMFLINKLIBS"
+
+if [ -v DEBUG ]
+then
+  FFLAGS+=" -O0 -g -debug full,extended -warn all -fpe0 -check all,noarg_temp_created"
+else
+  FFLAGS+=" -O2"
+fi
+
+/usr/bin/perl mkdepends .
+
+make F90="$F90" FFLAGS="$FFLAGS" LDFLAGS="$LDFLAGS" EXEC="$EXEC"
+
+export OMP_NUM_THREADS=64
+
+mpirun -np 1 ./$EXEC
