@@ -6,10 +6,10 @@ module mesh_module
 
   real(kind=rp),parameter :: rtol = 0, atol = 1e-6_rp, rtd = 45/atan(1.0_rp)
 
-  integer :: ncell,nnode_per_cell,nalt,nnode,nelement
+  integer :: ncell,nnode_per_cell,nsubcell,nnode_per_subcell,nalt,nnode,nelement
   real(kind=rp),dimension(:),allocatable :: alt,lat,lon,latr,lonr
   real(kind=rp),dimension(:,:),allocatable :: x,y,z,nodes
-  integer,dimension(:,:),allocatable :: elements
+  integer,dimension(:,:),allocatable :: conn,elements
 
   contains
 !-----------------------------------------------------------------------
@@ -38,10 +38,23 @@ module mesh_module
     stat = nf90_inquire_dimension(ncid,dimid,len=nnode_per_cell)
     if (stat /= nf90_noerr) call handle_error('nf90_inquire_dimension',stat)
 
+    stat = nf90_inq_dimid(ncid,'subcell',dimid)
+    if (stat /= nf90_noerr) call handle_error('nf90_inq_dimid',stat)
+
+    stat = nf90_inquire_dimension(ncid,dimid,len=nsubcell)
+    if (stat /= nf90_noerr) call handle_error('nf90_inquire_dimension',stat)
+
+    stat = nf90_inq_dimid(ncid,'node_per_subcell',dimid)
+    if (stat /= nf90_noerr) call handle_error('nf90_inq_dimid',stat)
+
+    stat = nf90_inquire_dimension(ncid,dimid,len=nnode_per_subcell)
+    if (stat /= nf90_noerr) call handle_error('nf90_inquire_dimension',stat)
+
     allocate(values(ncell,nnode_per_cell))
     allocate(x(ncell,nnode_per_cell))
     allocate(y(ncell,nnode_per_cell))
     allocate(z(ncell,nnode_per_cell))
+    allocate(conn(nsubcell,nnode_per_subcell))
 
     stat = nf90_inq_varid(ncid,'x',varid)
     if (stat /= nf90_noerr) call handle_error('nf90_inq_varid',stat)
@@ -66,6 +79,12 @@ module mesh_module
     if (stat /= nf90_noerr) call handle_error('nf90_get_var',stat)
 
     z = values
+
+    stat = nf90_inq_varid(ncid,'conn',varid)
+    if (stat /= nf90_noerr) call handle_error('nf90_inq_varid',stat)
+
+    stat = nf90_get_var(ncid,varid,conn)
+    if (stat /= nf90_noerr) call handle_error('nf90_get_var',stat)
 
     stat = nf90_close(ncid)
     if (stat /= nf90_noerr) call handle_error('nf90_close',stat)
@@ -125,9 +144,9 @@ module mesh_module
     use util_module,only:isclose,find_index
 
     integer,parameter :: maxelem = 10000
-    integer :: icell,ilayer,i
+    integer :: icell,ilayer,i,isubcell,inode
     integer,dimension(9) :: node_per_cell
-    integer,dimension(4,maxelem) :: elements_tmp
+    integer,dimension(nnode_per_subcell,maxelem) :: elements_tmp
 
     nelement = 0
     do icell = 1,ncell
@@ -142,16 +161,17 @@ module mesh_module
                 y(icell,(ilayer-1)*9+i), &
                 z(icell,(ilayer-1)*9+i)/),rtol,atol)
           enddo
-          elements_tmp(:,nelement+1) = (/node_per_cell(1),node_per_cell(2),node_per_cell(5),node_per_cell(4)/)
-          elements_tmp(:,nelement+2) = (/node_per_cell(2),node_per_cell(3),node_per_cell(6),node_per_cell(5)/)
-          elements_tmp(:,nelement+3) = (/node_per_cell(4),node_per_cell(5),node_per_cell(8),node_per_cell(7)/)
-          elements_tmp(:,nelement+4) = (/node_per_cell(5),node_per_cell(6),node_per_cell(9),node_per_cell(8)/)
-          nelement = nelement+4
+          do isubcell = 1,nsubcell
+            do inode = 1,nnode_per_subcell
+              elements_tmp(inode,nelement+isubcell) = node_per_cell(conn(inode,isubcell))
+            enddo
+          enddo
+          nelement = nelement+nsubcell
         endif
       enddo
     enddo
 
-    allocate(elements(4,nelement))
+    allocate(elements(nnode_per_subcell,nelement))
     elements = elements_tmp(:,1:nelement)
 
   endsubroutine setup_elements

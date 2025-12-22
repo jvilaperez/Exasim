@@ -108,8 +108,8 @@ timeidx = 0
 data = netCDF4.Dataset(filename='regrid/data.nc')
 nalt = data.dimensions['alt'].size
 nnode = data.dimensions['node'].size
-cellidx = data['cellidx_in'][:].filled()
-nodeidx = data['nodeidx_in'][:].filled()
+nodeidx = data['nodeidx_out'][:].filled() - 1
+altidx = data['altidx_out'][:].filled() - 1
 BX = data['BX'][:].filled()
 BY = data['BY'][:].filled()
 BZ = data['BZ'][:].filled()
@@ -118,14 +118,14 @@ EY = data['EY'][timeidx, :, :].filled()
 EZ = data['EZ'][timeidx, :, :].filled()
 data.close()
 
-for ialt in range(nalt):
-    for inode in range(nnode):
-        mesh['vdg'][nodeidx[ialt, inode], 0, cellidx[ialt, inode]] = BX[ialt, inode]
-        mesh['vdg'][nodeidx[ialt, inode], 1, cellidx[ialt, inode]] = BY[ialt, inode]
-        mesh['vdg'][nodeidx[ialt, inode], 2, cellidx[ialt, inode]] = BZ[ialt, inode]
-        mesh['vdg'][nodeidx[ialt, inode], 3, cellidx[ialt, inode]] = EX[ialt, inode]
-        mesh['vdg'][nodeidx[ialt, inode], 4, cellidx[ialt, inode]] = EY[ialt, inode]
-        mesh['vdg'][nodeidx[ialt, inode], 5, cellidx[ialt, inode]] = EZ[ialt, inode]
+for icell in range(ne):
+    for inode in range(npe):
+        mesh['vdg'][inode, 0, icell] = BX[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 1, icell] = BY[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 2, icell] = BZ[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 3, icell] = EX[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 4, icell] = EY[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 5, icell] = EZ[altidx[inode, icell], nodeidx[inode, icell]]
 
 # search compilers and set options
 pde = Gencode.setcompilers(pde)
