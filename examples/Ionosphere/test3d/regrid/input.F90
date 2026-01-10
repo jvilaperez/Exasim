@@ -4,7 +4,16 @@ module input_module
 
   implicit none
 
-  integer :: nlon,nlat,nlev,ntime,nvar
+  character(len=*),dimension(*),parameter :: varname = &
+    (/'OP          ','TI          ','NU_OP       ', &
+      'OP_PROD     ','OP_LOSS_COEF', &
+      'TI_HEAT     ','TI_COOL_COEF', &
+      'UI_ExB      ','VI_ExB      ','WI_ExB      ', &
+      'EEX         ','EEY         ','EEZ         ', &
+      'UN          ','VN          ','WN          '/)
+  integer,parameter :: nvar = size(varname)
+
+  integer :: nlon,nlat,nlev,ntime
   real(kind=rp),dimension(:),allocatable :: lon,lat,lev,time
   real(kind=rp),dimension(:,:,:,:),allocatable :: z
   real(kind=rp),dimension(:,:,:,:,:),allocatable :: variable
@@ -19,25 +28,16 @@ module input_module
 
     character(len=*),intent(in) :: filename
 
-    real(kind=rp),parameter :: pi = 4*atan(1.0_rp), dtr = pi/180
-    character(len=*),dimension(*),parameter :: &
-      scalarname = (/'OP          ','TI          ','NU_OP       ', &
-        'OP_PROD     ','OP_LOSS_COEF','TI_HEAT     ','TI_COOL_COEF'/), &
-      vectorname = (/'UI_ExB','VI_ExB','WI_ExB', &
-        'EEX   ','EEY   ','EEZ   ','UN    ','VN    ','WN    '/)
-    integer,parameter :: nscalar = size(scalarname), nvector = size(vectorname)/3
-    real(kind=rp),dimension(nscalar+3*nvector),parameter :: varscale = &
+    real(kind=rp),dimension(nvar),parameter :: varscale = &
       (/1e6_rp,1.0_rp,1e6_rp, &
-        1.0_rp,1.0_rp,0.1_rp,1.0_rp, &
+        1.0_rp,1.0_rp, &
+        0.1_rp,1.0_rp, &
         1e-2_rp,1e-2_rp,1e-2_rp, &
         1e2_rp,1e2_rp,1e2_rp, &
         1e-2_rp,1e-2_rp,1e-2_rp/)
-    integer :: stat,ncid,dimid,varid,i,j,k,t,iscalar,ivector,ivar
+    integer :: stat,ncid,dimid,varid,ivar
     real(kind=8),dimension(:),allocatable :: values1d
     real(kind=4),dimension(:,:,:,:),allocatable :: values4d
-    real(kind=rp),dimension(:,:,:,:,:),allocatable :: vector
-
-    nvar = nscalar+3*nvector
 
     stat = nf90_open(trim(filename),nf90_nowrite,ncid)
     if (stat /= nf90_noerr) call handle_error('nf90_open',stat)
@@ -60,6 +60,9 @@ module input_module
     stat = nf90_inquire_dimension(ncid,dimid,len=nlev)
     if (stat /= nf90_noerr) call handle_error('nf90_inquire_dimension',stat)
 
+! exlude the top level (filled)
+    nlev = nlev-1
+
     stat = nf90_inq_dimid(ncid,'time',dimid)
     if (stat /= nf90_noerr) call handle_error('nf90_inq_dimid',stat)
 
@@ -68,7 +71,6 @@ module input_module
 
     allocate(values1d(max(nlon,nlat,nlev,ntime)))
     allocate(values4d(nlon,nlat,nlev,ntime))
-    allocate(vector(nlon,nlat,nlev,ntime,3))
     allocate(lon(nlon))
     allocate(lat(nlat))
     allocate(lev(nlev))
@@ -95,7 +97,7 @@ module input_module
     stat = nf90_inq_varid(ncid,'lev',varid)
     if (stat /= nf90_noerr) call handle_error('nf90_inq_varid',stat)
 
-    stat = nf90_get_var(ncid,varid,values1d(1:nlev))
+    stat = nf90_get_var(ncid,varid,values1d(1:nlev),count=(/nlev/))
     if (stat /= nf90_noerr) call handle_error('nf90_get_var',stat)
 
     lev = values1d(1:nlev)
@@ -111,47 +113,21 @@ module input_module
     stat = nf90_inq_varid(ncid,'Z',varid)
     if (stat /= nf90_noerr) call handle_error('nf90_inq_varid',stat)
 
-    stat = nf90_get_var(ncid,varid,values4d)
+    stat = nf90_get_var(ncid,varid,values4d,count=(/nlon,nlat,nlev,ntime/))
     if (stat /= nf90_noerr) call handle_error('nf90_get_var',stat)
 
-! get Z at midpoints to be consistent with other fields
-    do k = 1,nlev-1
-      z(:,:,k,:) = (values4d(:,:,k,:)+values4d(:,:,k+1,:))/2
-    enddo
-    z(:,:,nlev,:) = max((3*values4d(:,:,nlev,:)-values4d(:,:,nlev-1,:))/2,0.0_rp)
-    z = z*1e-5_rp
+! fields can be defined at midpoints and interfaces
+! for now, just discard those minor differences
+    z = values4d*1e-5_rp
 
-    do iscalar = 1,nscalar
-      stat = nf90_inq_varid(ncid,trim(scalarname(iscalar)),varid)
+    do ivar = 1,nvar
+      stat = nf90_inq_varid(ncid,trim(varname(ivar)),varid)
       if (stat /= nf90_noerr) call handle_error('nf90_inq_varid',stat)
 
-      stat = nf90_get_var(ncid,varid,values4d)
+      stat = nf90_get_var(ncid,varid,values4d,count=(/nlon,nlat,nlev,ntime/))
       if (stat /= nf90_noerr) call handle_error('nf90_get_var',stat)
 
-      variable(:,:,:,:,iscalar) = values4d
-    enddo
-
-    do ivector = 1,nvector
-      do iscalar = 1,3
-        stat = nf90_inq_varid(ncid,trim(vectorname((ivector-1)*3+iscalar)),varid)
-        if (stat /= nf90_noerr) call handle_error('nf90_inq_varid',stat)
-
-        stat = nf90_get_var(ncid,varid,values4d)
-        if (stat /= nf90_noerr) call handle_error('nf90_get_var',stat)
-
-        vector(:,:,:,:,iscalar) = values4d
-      enddo
-
-      do concurrent (i = 1:nlon, j = 1:nlat, k = 1:nlev-1, t = 1:ntime)
-        variable(i,j,k,t,nscalar+ivector*3-2:nscalar+ivector*3) = &
-          rotate_s2c(pi/2-lat(j)*dtr,lon(i)*dtr, &
-          (/vector(i,j,k,t,3),-vector(i,j,k,t,2),vector(i,j,k,t,1)/))
-      enddo
-    enddo
-
-    variable(:,:,nlev,:,:) = 2*variable(:,:,nlev-1,:,:)-variable(:,:,nlev-2,:,:)
-    do ivar = 1,nvar
-      variable(:,:,:,:,ivar) = variable(:,:,:,:,ivar)*varscale(ivar)
+      variable(:,:,:,:,ivar) = values4d*varscale(ivar)
     enddo
 
     stat = nf90_close(ncid)
@@ -159,7 +135,6 @@ module input_module
 
     deallocate(values1d)
     deallocate(values4d)
-    deallocate(vector)
 
   endsubroutine read_data
 !-----------------------------------------------------------------------
