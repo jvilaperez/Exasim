@@ -16,13 +16,13 @@ program driver
 
   implicit none
 
-  integer,parameter :: isv = 0, itype = 1, nscalar = 5, nvector = nvar-nscalar
+  integer,parameter :: isv = 0, itype = 1, nscalar = 7, nvector = nvar-nscalar
   real(kind=8),parameter :: date = 2002 + 80/365.0_8
   real(kind=rp),parameter :: pi = 4*atan(1.0_rp), dtr = pi/180
   character(len=*),dimension(*),parameter :: &
     varname = (/'N ','T ','NU','P ','L ','H ','C ', &
       'VX','VY','VZ','EX','EY','EZ','UX','UY','UZ'/)
-  integer :: k0,k1,inode,i,j,k,t,ivar,ivx,ivy,ivz,iex,iey,iez
+  integer :: inode,i,j,k,t,ivar,ivx,ivy,ivz,iex,iey,iez
   real(kind=8) :: colat,elong,h,bx,by,bz,f
   real(kind=rp) :: theta,phi
   real(kind=rp),dimension(3) :: v,vperp
@@ -31,6 +31,7 @@ program driver
   real(kind=rp),dimension(:,:,:,:),allocatable :: var_int
   real(kind=rp),dimension(:,:,:,:,:),allocatable :: var_ext_alt
   integer,dimension(:,:),allocatable :: cellidx_in,nodeidx_in,nodeidx_out,altidx_out
+  logical,dimension(:),allocatable :: positive
 
   call init_esmf
 
@@ -63,20 +64,11 @@ program driver
     enddo
   enddo
 
+  allocate(positive(nlev))
   allocate(var_ext_alt(nlon,nlat,nalt,ntime,nvar))
-  do concurrent (i = 1:nlon, j = 1:nlat, t = 1:ntime) ! no extrapolation of ion density for now
-    do k0 = 1,nalt
-      if (alt(k0) >= z(i,j,1,t)) exit
-    enddo
-    do k1 = nalt,1,-1
-      if (alt(k1) <= z(i,j,nlev,t)) exit
-    enddo
-    var_ext_alt(i,j,k0:k1,t,1) = interp1d(alt(k0:k1),z(i,j,:,t),var_ext(i,j,:,t,1))
-    var_ext_alt(i,j,1:k0-1,t,1) = var_ext(i,j,1,t,1)
-    var_ext_alt(i,j,k1+1:nalt,t,1) = var_ext(i,j,nlev,t,1)
-  enddo
-  do concurrent (i = 1:nlon, j = 1:nlat, t = 1:ntime, ivar = 2:nscalar)
-    var_ext_alt(i,j,:,t,ivar) = exp(interp1d(alt,z(i,j,:,t),log(var_ext(i,j,:,t,ivar))))
+  do concurrent (i = 1:nlon, j = 1:nlat, t = 1:ntime, ivar = 1:nscalar)
+    positive = var_ext(i,j,:,t,ivar) > 0
+    var_ext_alt(i,j,:,t,ivar) = exp(interp1d(alt,pack(z(i,j,:,t),positive),log(pack(var_ext(i,j,:,t,ivar),positive))))
   enddo
 
   allocate(vector(nalt,nvector))

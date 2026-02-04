@@ -29,8 +29,8 @@ module input_module
     character(len=*),intent(in) :: filename
 
     real(kind=rp),dimension(nvar),parameter :: varscale = &
-      (/1e6_rp,1.0_rp,1e6_rp, &
-        1.0_rp,1.0_rp, &
+      (/1e6_rp,1.0_rp,1.0_rp, &
+        1e6_rp,1.0_rp, &
         0.1_rp,1.0_rp, &
         1e-2_rp,1e-2_rp,1e-2_rp, &
         1e2_rp,1e2_rp,1e2_rp, &

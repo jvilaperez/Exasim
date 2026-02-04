@@ -2,7 +2,7 @@
 #PBS -l select=1:ncpus=64:mem=117gb:mpiprocs=1:ompthreads=64
 #PBS -l job_priority=premium
 #PBS -l walltime=00:10:00
-#PBS -A P54048000
+#PBS -A P28100036
 #PBS -q main
 #PBS -j oe
 
