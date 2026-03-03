@@ -83,7 +83,10 @@ pde['soltime'] = numpy.arange(1,pde['dt'].size+1,1); # steps at which solution a
 pde['visdt'] = 1.0; # visualization timestep size
 
 # Mesh generation
-mesh['p'], mesh['t'], mesh['dgnodes'] = Mesh.cubesphere(pde['porder'],R0,R1,15,10)
+hDiv = 18 #horizontal divisions
+nDiv = 1 # number of grid elements per scale height
+mesh['p'], mesh['t'], mesh['dgnodes'] = Mesh.cubesphere_scaleheight(pde['porder'], hDiv, nDiv, hL, hT, H0)
+# mesh['p'], mesh['t'], mesh['dgnodes'] = Mesh.cubesphere(pde['porder'],R0,R1,15,10)
 mesh['boundaryexpr'] = [
     lambda p: abs(p[0,:]**2 + p[1,:]**2 + p[2,:]**2 - R0**2) < 1e-6,
     lambda p: abs(p[0,:]**2 + p[1,:]**2 + p[2,:]**2 - R1**2) < 1e-6]
