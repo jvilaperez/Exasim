@@ -44,7 +44,7 @@ pde['matvectol'] = 1e-6; # matrix-vector product tolerance
 dt0 = 60.0  # time step size in seconds
 
 Re = 6378e3
-hL = 100e3; hT = 500e3
+hL = 100e3; hT = 600e3
 
 gam = 5/3
 m = 16*1.67e-27

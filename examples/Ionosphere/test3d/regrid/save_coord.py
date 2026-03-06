@@ -10,7 +10,7 @@ import Preprocessing
 
 Re = 6378e3
 hL = 100e3
-hT = 500e3
+hT = 600e3
 
 m = 16*1.67e-27
 kB = 1.38e-23
@@ -21,7 +21,15 @@ H0 = kB*T0/(m*g0)
 R0 = (Re + hL)/H0
 R1 = (Re + hT)/H0
 
-_, _, dgnodes = Mesh.cubesphere(2, Re+hL, Re+hT, 16, 10)
+porder = 2
+hDiv = 18 #horizontal divisions
+nDiv = 1 # number of grid elements per scale height
+_, _, dgnodes = Mesh.cubesphere_scaleheight(porder, hDiv, nDiv, hL, hT, H0)
+
+dgnodes = dgnodes*H0 # convert to km
+
+# _, _, dgnodes = Mesh.cubesphere(2, Re+hL, Re+hT, 16, 10)
+# _, _, dgnodes = Mesh.cubesphere(2, R0, R1, 16, 10)
 _, telem = Preprocessing.masternodes(2, 3, 1)[0:2]
 
 data = netCDF4.Dataset(filename='coord.nc', mode='w')
@@ -40,3 +48,5 @@ y[:] = dgnodes[:, 1, :]
 z[:] = dgnodes[:, 2, :]
 conn[:] = telem[0: 4, 0: 4]
 data.close()
+
+print("Completed!")
