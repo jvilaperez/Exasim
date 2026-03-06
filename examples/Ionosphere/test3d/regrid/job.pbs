@@ -11,21 +11,21 @@
 cd $PBS_O_WORKDIR
 
 module --force purge
-module load ncarenv/23.09 intel cray-mpich netcdf-mpi mkl esmf parallel-netcdf parallelio
+module load ncarenv/24.12 intel cray-mpich netcdf-mpi mkl esmf parallel-netcdf parallelio
 
 ESMF_LIBSDIR=$(grep -Po '^ESMF_LIBSDIR=\K.*' $ESMFMKFILE)
 ESMF_F90COMPILEPATHS=$(grep -Po '^ESMF_F90COMPILEPATHS=\K.*' $ESMFMKFILE)
 ESMF_F90LINKPATHS=$(grep -Po '^ESMF_F90LINKPATHS=\K.*' $ESMFMKFILE)
 ESMF_F90ESMFLINKLIBS=$(grep -Po '^ESMF_F90ESMFLINKLIBS=\K.*' $ESMFMKFILE)
 
-export LD_LIBRARY_PATH+=":$NCAR_LDFLAGS_NETCDF:$ESMF_LIBSDIR:$NCAR_LDFLAGS_PARALLEL_NETCDF:$NCAR_LDFLAGS_PARALLELIO"
+export LD_LIBRARY_PATH+=":$NCAR_LDFLAGS_NETCDF:$NCAR_LDFLAGS_NETCDF64:$ESMF_LIBSDIR:$NCAR_LDFLAGS_PARALLEL_NETCDF:$NCAR_LDFLAGS_PARALLELIO"
 
 EXEC=regrid.exe
 F90=mpifort
-FFLAGS="-traceback -I$NCAR_INC_NETCDF"
+FFLAGS="-traceback -parallel -I$NCAR_INC_NETCDF"
 FFLAGS+=" $ESMF_F90COMPILEPATHS"
 LDFLAGS="-L$NCAR_LDFLAGS_NETCDF -lnetcdff"
-LDFLAGS+=" -lmkl_intel_lp64 -lmkl_sequential -lmkl_core"
+LDFLAGS=" -L$NCAR_LDFLAGS_NETCDF64 -lnetcdf"
 LDFLAGS+=" $ESMF_F90LINKPATHS $ESMF_F90ESMFLINKLIBS"
 
 if [ -v DEBUG ]

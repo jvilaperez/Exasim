@@ -118,7 +118,7 @@ module input_module
 
 ! fields can be defined at midpoints and interfaces
 ! for now, just discard those minor differences
-    z = values4d*1e-5_rp
+    z = values4d/100
 
     do ivar = 1,nvar
       stat = nf90_inq_varid(ncid,trim(varname(ivar)),varid)
