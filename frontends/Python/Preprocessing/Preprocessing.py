@@ -2,6 +2,7 @@ from initializeexasim import initializeexasim
 from findexec import findexec
 from masternodes import masternodes
 from mkshape import mkshape
+from gaussnodes import gaussnodes
 from mkmaster import mkmaster
 from writeapp import writeapp
 from readapp import readapp
@@ -19,6 +20,7 @@ from mkdge2dgf import mkdge2dgf
 from createdgnodes import createdgnodes
 from facenumbering import facenumbering
 from meshpartitionhdg import meshpartitionhdg
+from gradu import gradu
 import os, sys, sympy
 from importlib import import_module
 import importlib.util
