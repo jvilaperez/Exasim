@@ -57,10 +57,10 @@ program driver
     theta = pi/2-latr(inode)
     phi = lonr(inode)
     do k = 1,nalt
-      h = alt(k)
+      h = alt(k)*1e-3_rp
       call igrf14syn(isv,date,itype,h,colat,elong,bx,by,bz,f)
-      b2(inode,k) = (f*1e-9_rp)**2
-      b(inode,k,:) = 1e-9_rp*rotate_s2c(theta,phi,real((/-bz,-bx,by/),kind=rp))
+      b2(inode,k) = f**2
+      b(inode,k,:) = rotate_s2c(theta,phi,real((/-bz,-bx,by/),kind=rp))
     enddo
   enddo
 
