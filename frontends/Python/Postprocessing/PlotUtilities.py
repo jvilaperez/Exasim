@@ -197,3 +197,66 @@ def plotslice(xcg2d,ucg2d, xgrid=None, coastlines=True, clim=None, coastcolor='k
         plot_mesh_edges(xgrid, ax, color, lw)
 
     return fig, ax
+
+
+def makemovie(xdg, sol, master, field=0, ilev=-1, clim=None, fps=10,
+              coastlines=True, outfile="movie.mp4", framedir="frames",
+              Re=6378e3, H0=1.0):
+    """
+    Generate an mp4 movie from a time-series solution.
+
+    Parameters
+    ----------
+    xdg     : (npe, 3, ne) high-order DG mesh on cube-sphere
+    sol     : (npe, nfields, ne, nsteps) solution array
+    master  : struct with solution information
+    field   : which solution field to plot (default 0)
+    ilev    : which layer to plot (default -1 = top layer)
+    clim    : (vmin, vmax) colorbar limits; None = auto from all frames
+    fps     : frames per second (default 10)
+    outfile : output mp4 filename
+    framedir: directory to store temporary png frames
+    Re      : 
+    H0      : 
+    """
+    import os
+
+    nsteps = sol.shape[3]
+
+    # Auto colorlimits from all frames
+    if clim is None:
+        vmin, vmax = np.inf, -np.inf
+        for i in range(nsteps):
+            _, ucg2d_i, _, _ = getslice(xdg, sol[:, field, :, i], master, ilev)
+            vmin = min(vmin, float(ucg2d_i.min()))
+            vmax = max(vmax, float(ucg2d_i.max()))
+        clim = (vmin, vmax)
+
+    # Altitude label (same for all frames)
+    _, _, altObj, _ = getslice(xdg, sol[:, field, :, 0], master, ilev)
+    altitude_km = (altObj * H0 - Re) / 1000
+
+    os.makedirs(framedir, exist_ok=True)
+
+    for i in range(nsteps):
+        xcg2d_i, ucg2d_i, _, xgrid_i = getslice(xdg, sol[:, field, :, i], master, ilev)
+        fig_i, ax_i = plotslice(xcg2d_i, ucg2d_i, xgrid_i,
+                                coastlines=coastlines, clim=clim,
+                                coastcolor='k', coastlw=0.5,
+                                color='w', lw=0.05)
+        ax_i.set_title(f'Altitude: {altitude_km:.1f} km | step={i}')
+        fig_i.tight_layout()
+        fig_i.savefig(os.path.join(framedir, f"frame_{i:04d}.png"), dpi=150)
+        plt.close(fig_i)
+        print(f"  saved frame {i+1}/{nsteps}")
+    try:
+        os.system(f"ffmpeg -y -r {fps} -i {framedir}/frame_%04d.png "
+                  f"-c:v libx264 -pix_fmt yuv420p {outfile}")
+    except Exception as e:
+        print("Error running ffmpeg. Make sure it is installed and in your PATH.")
+        print("Command attempted:"
+              f"ffmpeg -y -r {fps} -i {framedir}/frame_%04d.png "
+              f"-c:v libx264 -pix_fmt yuv420p {outfile}")
+        print(str(e))
+        return
+    print(f"Done: {outfile}")
