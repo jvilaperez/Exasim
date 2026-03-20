@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-#PBS -l select=1:ncpus=64:mem=117gb:mpiprocs=1:ompthreads=64
+#PBS -l select=1:ncpus=1:mem=117gb
 #PBS -l job_priority=premium
 #PBS -l walltime=00:10:00
 #PBS -A P28100045
@@ -22,7 +22,7 @@ export LD_LIBRARY_PATH+=":$NCAR_LDFLAGS_NETCDF:$NCAR_LDFLAGS_NETCDF64:$ESMF_LIBS
 
 EXEC=regrid.exe
 F90=mpifort
-FFLAGS="-traceback -parallel -qopenmp -I$NCAR_INC_NETCDF"
+FFLAGS="-traceback -I$NCAR_INC_NETCDF"
 FFLAGS+=" $ESMF_F90COMPILEPATHS"
 LDFLAGS="-L$NCAR_LDFLAGS_NETCDF -lnetcdff"
 LDFLAGS=" -L$NCAR_LDFLAGS_NETCDF64 -lnetcdf"
