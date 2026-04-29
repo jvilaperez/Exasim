@@ -4,28 +4,27 @@ module output_module
 
   contains
 !-----------------------------------------------------------------------
-  subroutine write_data(nnode,nalt,ntime,nvar,ncell,nnode_per_cell, &
-    lon,lat,alt,time,b,variable,cellidx_in,nodeidx_in,nodeidx_out,altidx_out, &
+  subroutine write_data(nnode,nalt,nvar,ncell,nnode_per_cell, &
+    lon,lat,alt,b,variable,cellidx_in,nodeidx_in,nodeidx_out,altidx_out, &
     filename,varname)
 
     use prec,only:rp
     use netcdf,only:nf90_create,nf90_def_dim,nf90_def_var,nf90_enddef, &
       nf90_put_var,nf90_close,nf90_netcdf4,nf90_double,nf90_int,nf90_noerr
 
-    integer,intent(in) :: nnode,nalt,ntime,nvar,ncell,nnode_per_cell
+    integer,intent(in) :: nnode,nalt,nvar,ncell,nnode_per_cell
     real(kind=rp),dimension(nnode),intent(in) :: lon,lat
     real(kind=rp),dimension(nalt),intent(in) :: alt
-    real(kind=rp),dimension(ntime),intent(in) :: time
     real(kind=rp),dimension(nnode,nalt,3),intent(in) :: b
-    real(kind=rp),dimension(nnode,nalt,ntime,nvar),intent(in) :: variable
+    real(kind=rp),dimension(nnode,nalt,nvar),intent(in) :: variable
     integer,dimension(nnode,nalt),intent(in) :: cellidx_in,nodeidx_in
     integer,dimension(ncell,nnode_per_cell),intent(in) :: nodeidx_out,altidx_out
     character(len=*),intent(in) :: filename
     character(len=*),dimension(nvar),intent(in) :: varname
 
-    integer :: stat,ncid,dimid_node,dimid_alt,dimid_time, &
+    integer :: stat,ncid,dimid_node,dimid_alt, &
       dimid_cell,dimid_node_per_cell, &
-      varid_lon,varid_lat,varid_alt,varid_time,ivar, &
+      varid_lon,varid_lat,varid_alt,ivar, &
       varid_cellidx_in,varid_nodeidx_in, &
       varid_nodeidx_out,varid_altidx_out
     integer,dimension(3) :: varid_b
@@ -38,9 +37,6 @@ module output_module
     if (stat /= nf90_noerr) call handle_error('nf90_def_dim',stat)
 
     stat = nf90_def_dim(ncid,'alt',nalt,dimid_alt)
-    if (stat /= nf90_noerr) call handle_error('nf90_def_dim',stat)
-
-    stat = nf90_def_dim(ncid,'time',ntime,dimid_time)
     if (stat /= nf90_noerr) call handle_error('nf90_def_dim',stat)
 
     stat = nf90_def_dim(ncid,'cell',ncell,dimid_cell)
@@ -58,9 +54,6 @@ module output_module
     stat = nf90_def_var(ncid,'alt',nf90_double,dimid_alt,varid_alt)
     if (stat /= nf90_noerr) call handle_error('nf90_def_var',stat)
 
-    stat = nf90_def_var(ncid,'time',nf90_double,dimid_time,varid_time)
-    if (stat /= nf90_noerr) call handle_error('nf90_def_var',stat)
-
     stat = nf90_def_var(ncid,'BX',nf90_double, &
       (/dimid_node,dimid_alt/),varid_b(1))
     if (stat /= nf90_noerr) call handle_error('nf90_def_var',stat)
@@ -74,8 +67,8 @@ module output_module
     if (stat /= nf90_noerr) call handle_error('nf90_def_var',stat)
 
     do ivar = 1,nvar
-      stat = nf90_def_var(ncid,trim(varname(ivar)),nf90_double, &
-        (/dimid_node,dimid_alt,dimid_time/),varid(ivar))
+      stat = nf90_def_var(ncid,trim(varname(ivar)), &
+        nf90_double,(/dimid_node,dimid_alt/),varid(ivar))
       if (stat /= nf90_noerr) call handle_error('nf90_def_var',stat)
     enddo
 
@@ -107,16 +100,13 @@ module output_module
     stat = nf90_put_var(ncid,varid_alt,real(alt,kind=8))
     if (stat /= nf90_noerr) call handle_error('nf90_put_var',stat)
 
-    stat = nf90_put_var(ncid,varid_time,real(time,kind=8))
-    if (stat /= nf90_noerr) call handle_error('nf90_put_var',stat)
-
     do ivar = 1,3
       stat = nf90_put_var(ncid,varid_b(ivar),real(b(:,:,ivar),kind=8))
       if (stat /= nf90_noerr) call handle_error('nf90_put_var',stat)
     enddo
 
     do ivar = 1,nvar
-      stat = nf90_put_var(ncid,varid(ivar),real(variable(:,:,:,ivar),kind=8))
+      stat = nf90_put_var(ncid,varid(ivar),real(variable(:,:,ivar),kind=8))
       if (stat /= nf90_noerr) call handle_error('nf90_put_var',stat)
     enddo
 

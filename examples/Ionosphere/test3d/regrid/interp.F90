@@ -186,7 +186,7 @@ module interp_module
 
   endfunction bound
 !-----------------------------------------------------------------------
-  pure function interp1d(x,xp,fp,period) result(f)
+  pure function interp1d(x,xp,fp,period,left,right) result(f)
 ! 1D linear interpolation, linear extrapolation if out of bound
 ! x (input): output locations
 ! xp (input): input locations
@@ -194,12 +194,14 @@ module interp_module
 ! fp (input): values at input locations
 ! f (output): values at output locations
 ! period (input,optional): period of xp if it is a circular coordinate
+! left,right (input,optional): extrapolation flags if out of bound
 
 ! if period is present, then xp range should be smaller than period
 
     real(kind=rp),dimension(:),intent(in) :: x,xp
     real(kind=rp),dimension(size(xp)),intent(in) :: fp
     real(kind=rp),intent(in),optional :: period
+    logical,intent(in),optional :: left,right
     real(kind=rp),dimension(size(x)) :: f
 
     integer :: nx,nxp,i,ix,i0,i1
@@ -230,20 +232,30 @@ module interp_module
       do i = 1,nx
         ix = find(xp,x(i))
 
-! linear extrapolation if the query location is out of bound
+! extrapolate based on flags if the query location is out of bound
         if (ix == 0) then
           i0 = 1
-          i1 = 2
+          i1 = 1
+          if (present(left)) then
+            if (left) i1 = 2
+          endif
         elseif (ix == nxp) then
-          i0 = nxp-1
+          i0 = nxp
           i1 = nxp
+          if (present(right)) then
+            if (right) i0 = nxp-1
+          endif
         else
           i0 = ix
           i1 = ix+1
         endif
         dxp = xp(i1)-xp(i0)
 
-        f(i) = ((xp(i1)-x(i))*fp(i0) + (x(i)-xp(i0))*fp(i1)) / dxp
+        if (i0 == i1) then
+          f(i) = fp(i0)
+        else
+          f(i) = ((xp(i1)-x(i))*fp(i0) + (x(i)-xp(i0))*fp(i1)) / dxp
+        endif
       enddo
     endif
 

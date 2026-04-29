@@ -2,15 +2,14 @@ from netCDF4 import Dataset
 from matplotlib.pyplot import figure
 
 
-varname = 'N'
-timeidx = 0
+varname = 'OP'
 altidx = 0
 
 data = Dataset(filename='data.nc')
 print(data['alt'][altidx])
 lon = data['lon'][:].filled()
 lat = data['lat'][:].filled()
-variable = data[varname][timeidx, altidx, :].filled()
+variable = data[varname][altidx, :].filled()
 data.close()
 
 fig = figure()

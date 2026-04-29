@@ -1,12 +1,12 @@
 #!/usr/bin/bash
-#PBS -l select=1:ncpus=1:mem=117gb
+#PBS -l select=1:ncpus=1:mem=55gb
 #PBS -l job_priority=premium
 #PBS -l walltime=00:10:00
-#PBS -A P28100045
+#PBS -A P28100036
 #PBS -q main
 #PBS -j oe
 
-#DEBUG=""
+DEBUG=""
 
 cd $PBS_O_WORKDIR
 
@@ -39,6 +39,6 @@ fi
 
 make F90="$F90" FFLAGS="$FFLAGS" LDFLAGS="$LDFLAGS" EXEC="$EXEC"
 
-export OMP_NUM_THREADS=64
+export OMP_NUM_THREADS=1
 
 mpirun -np 1 ./$EXEC
