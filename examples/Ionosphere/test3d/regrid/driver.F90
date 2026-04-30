@@ -27,10 +27,10 @@ program driver
   character(len=*),dimension(*),parameter :: &
     varname = (/'OP','TI','NE','NU','P ','L ','H ','EI','IN', &
       'VX','VY','VZ','EX','EY','EZ','UX','UY','UZ'/)
-  integer :: inode,ielem,k,ivar,ivx,ivy,ivz,iex,iey,iez
+  integer :: inode,ielem,k,ivar,iex,iey,iez
   real(kind=8) :: colat,elong,h,bx,by,bz,f
   real(kind=rp) :: theta,phi
-  real(kind=rp),dimension(3) :: v,vperp
+  real(kind=rp),dimension(3) :: e,eperp
   real(kind=rp),dimension(:,:),allocatable :: b2,vector
   real(kind=rp),dimension(:,:,:),allocatable :: b,var_ext2int,var_int
   integer,dimension(:,:),allocatable :: cellidx_in,nodeidx_in,nodeidx_out,altidx_out
@@ -84,10 +84,10 @@ program driver
     theta = pi/2-elementGlat(ielem)*dtr
     phi = elementGlon(ielem)*dtr
     do concurrent (k = 1:nalt_int, ivar = 1:nvector/3)
-      v = rotate_s2c(theta,phi,(/vector(k,ivar*3),-vector(k,ivar*3-1),vector(k,ivar*3-2)/))
-      var_ext2int(ielem,k,nscalar+ivar*3-2) = v(1)
-      var_ext2int(ielem,k,nscalar+ivar*3-1) = v(2)
-      var_ext2int(ielem,k,nscalar+ivar*3) = v(3)
+      e = rotate_s2c(theta,phi,(/vector(k,ivar*3),-vector(k,ivar*3-1),vector(k,ivar*3-2)/))
+      var_ext2int(ielem,k,nscalar+ivar*3-2) = e(1)
+      var_ext2int(ielem,k,nscalar+ivar*3-1) = e(2)
+      var_ext2int(ielem,k,nscalar+ivar*3) = e(3)
     enddo
   enddo
 
@@ -97,26 +97,17 @@ program driver
 ! zero out the parallel component of drift velocity and electric field
 ! this might not be necessary
   do ivar = 1,nvar
-    if (trim(varname(ivar)) == 'VX') ivx = ivar
-    if (trim(varname(ivar)) == 'VY') ivy = ivar
-    if (trim(varname(ivar)) == 'VZ') ivz = ivar
     if (trim(varname(ivar)) == 'EX') iex = ivar
     if (trim(varname(ivar)) == 'EY') iey = ivar
     if (trim(varname(ivar)) == 'EZ') iez = ivar
   enddo
 
   do concurrent (inode = 1:nnode_int, k = 1:nalt_int)
-    v = (/var_int(inode,k,ivx),var_int(inode,k,ivy),var_int(inode,k,ivz)/)
-    vperp = v-dot_product(v,b(inode,k,:))*b(inode,k,:)/b2(inode,k)
-    var_int(inode,k,ivx) = vperp(1)
-    var_int(inode,k,ivy) = vperp(2)
-    var_int(inode,k,ivz) = vperp(3)
-
-    v = (/var_int(inode,k,iex),var_int(inode,k,iey),var_int(inode,k,iez)/)
-    vperp = v-dot_product(v,b(inode,k,:))*b(inode,k,:)/b2(inode,k)
-    var_int(inode,k,iex) = vperp(1)
-    var_int(inode,k,iey) = vperp(2)
-    var_int(inode,k,iez) = vperp(3)
+    e = (/var_int(inode,k,iex),var_int(inode,k,iey),var_int(inode,k,iez)/)
+    eperp = e-dot_product(e,b(inode,k,:))*b(inode,k,:)/b2(inode,k)
+    var_int(inode,k,iex) = eperp(1)
+    var_int(inode,k,iey) = eperp(2)
+    var_int(inode,k,iez) = eperp(3)
   enddo
 
   allocate(cellidx_in(nnode_int,nalt_int))
