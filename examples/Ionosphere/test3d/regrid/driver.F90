@@ -20,13 +20,20 @@ program driver
 
   implicit none
 
-  integer,parameter :: isv = 0, itype = 1, timeidx = 12, &
-    nscalar = 7, nvector = nvar-nscalar
+  integer,parameter :: isv = 0, itype = 1, timeidx = 7, &
+    nscalar = 30, nvector = nvar-nscalar
   real(kind=8),parameter :: date = 2002 + 80/365.0_8
   real(kind=rp),parameter :: pi = 4*atan(1.0_rp), dtr = pi/180
-  character(len=*),dimension(*),parameter :: &
-    varname = (/'OP','TI','NE','NU','P ','L ','H ','EI','IN', &
-      'VX','VY','VZ','EX','EY','EZ','UX','UY','UZ'/)
+  character(len=*),dimension(*),parameter :: varname = &
+    (/'OP      ','O2P     ','NP      ','N2P     ','NOP     ', &
+      'NU_OP   ','NU_O2P  ','NU_NP   ','NU_N2P  ','NU_NOP  ', &
+      'PROD_OP ','PROD_O2P','PROD_NP ','PROD_N2P','PROD_NOP', &
+      'LOSS_OP ','LOSS_O2P','LOSS_NP ','LOSS_N2P','LOSS_NOP', &
+      'TI      ','TE      ','TN      ','KAPPA_I ','KAPPA_E ', &
+      'HEAT_I  ','HEAT_E  ','QEI     ','QIN     ','QEN     ', &
+      'UI      ','VI      ','WI      ', &
+      'EX      ','EY      ','EZ      ', &
+      'UN      ','VN      ','WN      '/)
   integer :: inode,ielem,k,ivar,iex,iey,iez
   real(kind=8) :: colat,elong,h,bx,by,bz,f
   real(kind=rp) :: theta,phi
@@ -112,11 +119,11 @@ program driver
 
   allocate(cellidx_in(nnode_int,nalt_int))
   allocate(nodeidx_in(nnode_int,nalt_int))
-!  call reorder_in(cellidx_in,nodeidx_in)
+  call reorder_in(cellidx_in,nodeidx_in)
 
   allocate(nodeidx_out(ncell,nnode_per_cell))
   allocate(altidx_out(ncell,nnode_per_cell))
-!  call reorder_out(nodeidx_out,altidx_out)
+  call reorder_out(nodeidx_out,altidx_out)
 
   call write_data(nnode_int,nalt_int,nvar,ncell,nnode_per_cell, &
     lon_int,lat_int,alt_int,b*1e-9_rp,var_int, &

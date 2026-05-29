@@ -5,8 +5,15 @@ module input_module
   implicit none
 
   character(len=*),dimension(*),parameter :: varname = &
-    (/'OP  ','TI  ','NE  ','NU  ','PROD','LOSS','HEAT','QEI ','QIN ', &
-      'UI  ','VI  ','WI  ','EX  ','EY  ','EZ  ','UN_A','VN_A','WN_A'/)
+    (/'OP      ','O2P     ','NP      ','N2P     ','NOP     ', &
+      'NU_OP   ','NU_O2P  ','NU_NP   ','NU_N2P  ','NU_NOP  ', &
+      'PROD_OP ','PROD_O2P','PROD_NP ','PROD_N2P','PROD_NOP', &
+      'LOSS_OP ','LOSS_O2P','LOSS_NP ','LOSS_N2P','LOSS_NOP', &
+      'TI      ','TE      ','TN_ALT  ','KAPPA_I ','KAPPA_E ', &
+      'HEAT_I  ','HEAT_E  ','QEI     ','QIN     ','QEN     ', &
+      'UI      ','VI      ','WI      ', &
+      'EX      ','EY      ','EZ      ', &
+      'UN_ALT  ','VN_ALT  ','WN_ALT  '/)
   integer,parameter :: nvar = size(varname)
 
   integer :: nelement,nnode,nalt
@@ -26,8 +33,15 @@ module input_module
     integer,intent(in) :: timeidx
 
     real(kind=rp),dimension(nvar),parameter :: varscale = &
-      (/1e6_rp,1.0_rp,1e6_rp,1.0_rp,1e6_rp,1.0_rp,1e7_rp,1e7_rp,1e7_rp, &
-        1e-2_rp,1e-2_rp,1e-2_rp,1.0_rp,1.0_rp,1.0_rp,1e-2_rp,1e-2_rp,1e-2_rp/)
+      (/1e6_rp,1e6_rp,1e6_rp,1e6_rp,1e6_rp, &
+        1.0_rp,1.0_rp,1.0_rp,1.0_rp,1.0_rp, &
+        1e6_rp,1e6_rp,1e6_rp,1e6_rp,1e6_rp, &
+        1.0_rp,1.0_rp,1.0_rp,1.0_rp,1.0_rp, &
+        1.0_rp,1.0_rp,1.0_rp,1e-7_rp,1e-7_rp, &
+        1e-7_rp,1e-7_rp,1e-7_rp,1e-7_rp,1e-7_rp, &
+        1e-2_rp,1e-2_rp,1e-2_rp, &
+        1.0_rp,1.0_rp,1.0_rp, &
+        1e-2_rp,1e-2_rp,1e-2_rp/)
     integer :: stat,ncid,dimid,dimlen,varid,ivar
     real(kind=8),dimension(:),allocatable :: values1d
     real(kind=4),dimension(:,:,:),allocatable :: values3d
