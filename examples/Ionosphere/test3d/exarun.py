@@ -16,7 +16,7 @@ pde,mesh = Preprocessing.initializeexasim()
 
 # Define a PDE model: governing equations and boundary conditions
 pde['model'] = "ModelD";       # ModelC, ModelD, ModelW
-pde['modelfile'] = "pdemomentum"; # name of a file defining the PDE model
+pde['modelfile'] = "pdemodel"; # name of a file defining the PDE model
 pde['hybrid'] = 1;          # 0 -> LDG, 1 -> HDG
 
 # Choose computing platform and set number of processors
@@ -46,36 +46,34 @@ pde['matvectol'] = 1e-6; # matrix-vector product tolerance
 dt0 = 60.0  # time step size in seconds
 
 Re = 6378e3
-hL = 100e3; hT = 600e3
+hL = 100e3
+hT = 600e3
 
-gam = 5/3
-m = 16*1.67e-27
-kB = 1.38e-23
-e = 1.602e-19
-g0 = 9.81*Re*Re/(Re + hL)**2
-omega = 2*numpy.pi/86400
-T0 = 200.0
-H0 = kB*T0/(m*g0)
-v0 = numpy.sqrt(gam*kB*T0/m)
-t0 = H0/v0
-B0 = 1e-8
-E0 = B0*v0
-nu0 = 6000
+t0 = 10 # temporal scale (second)
+H0 = 10e3 # spatial scale (meter)
+n0 = 1e12 # typical electron density (per cubic meter)
+T0 = 1e3 # typical temperature (Kelvin)
+B0 = 1e-5 # average magnetic field (Tesla)
+
+g0 = 9.81 # gravity at earth surface
+wrot = 2*numpy.pi/86400 # earth rotation
+mp = 1.67e-27 # proton mass
+kB = 1.38e-23 # Boltzmann constant
+e = 1.602e-19 # elementary charge
 
 # Nondimensional parameters
 R0 = (Re + hL)/H0
 R1 = (Re + hT)/H0
+G0 = g0*t0**2/H0
+Wrot = wrot*t0
+lamda = kB*T0*t0**2/(mp*H0**2) # ratio between thermal energy and kinetic energy
+omega = e*B0*t0/mp # time scale of gyro motion
 
-Ro = v0/(omega*H0)
-piE = e*E0/(gam*m*g0)
-piB = e*B0*v0/(gam*m*g0)
-piNu = nu0*H0/v0
-piChem = 0.0 # Ch0*H0/v0
-Diff = 0.0 # kappa0/(n0*kB*v0*H0)
-piP = 0.0 # P0*H0/(v0*T0)
-
-pde['physicsparam'] = numpy.array([gam, Ro, piE, piB, piNu, piChem, Diff, piP, R0, R1, H0])
-                                  #  0,  1,   2,   3,    4,      5,    6,    7,  8,  9, 10
+# earth radius, gravity at earth surface, earth rotation,
+# molar mass of O+, O2+, N+, N2+, NO+,
+# ion adiabatic index, electron adiabatic index,
+# ratio between thermal energy and kinetic energy, time scale of gyro motion
+pde['physicsparam'] = numpy.array([Re/H0, G0, Wrot, 16, 32, 14, 28, 30, 5/3, 5/3, lamda, omega])
 
 # Time-stepping parameters
 pde['torder'] = 1;          # time-stepping order of accuracy
@@ -108,44 +106,102 @@ nalt = data.dimensions['alt'].size
 nnode = data.dimensions['node'].size
 nodeidx = data['nodeidx_out'][:].filled() - 1
 altidx = data['altidx_out'][:].filled() - 1
-BX = data['BX'][:].filled()/B0
-BY = data['BY'][:].filled()/B0
-BZ = data['BZ'][:].filled()/B0
-EX = data['EX'][timeidx+1, :, :].filled()/E0
-EY = data['EY'][timeidx+1, :, :].filled()/E0
-EZ = data['EZ'][timeidx+1, :, :].filled()/E0
-N = data['OP'][timeidx+1, :, :].filled()
-T = data['TI'][timeidx+1, :, :].filled()/T0
-NU = data['NU'][timeidx+1, :, :].filled()/nu0
-UX = data['UX'][timeidx+1, :, :].filled()/v0
-UY = data['UY'][timeidx+1, :, :].filled()/v0
-UZ = data['UZ'][timeidx+1, :, :].filled()/v0
-VX = data['VX'][timeidx, :, :].filled()/v0
-VY = data['VY'][timeidx, :, :].filled()/v0
-VZ = data['VZ'][timeidx, :, :].filled()/v0
+tn = data['TN'][:].filled()/T0
+ux = data['UX'][timeidx, :, :].filled()*t0/H0
+uy = data['UY'][timeidx, :, :].filled()*t0/H0
+uz = data['UZ'][timeidx, :, :].filled()*t0/H0
+bx = data['BX'][:].filled()/B0
+by = data['BY'][:].filled()/B0
+bz = data['BZ'][:].filled()/B0
+ex = data['EX'][timeidx, :, :].filled()*t0/(B0*H0)
+ey = data['EY'][timeidx, :, :].filled()*t0/(B0*H0)
+ez = data['EZ'][timeidx, :, :].filled()*t0/(B0*H0)
+prod_op = data['PROD_OP'][timeidx, :, :].filled()*t0/n0
+prod_o2p = data['PROD_O2P'][timeidx, :, :].filled()*t0/n0
+prod_np = data['PROD_NP'][timeidx, :, :].filled()*t0/n0
+prod_n2p = data['PROD_N2P'][timeidx, :, :].filled()*t0/n0
+prod_nop = data['PROD_NOP'][timeidx, :, :].filled()*t0/n0
+loss_op = data['LOSS_OP'][timeidx, :, :].filled()*t0
+loss_o2p = data['LOSS_O2P'][timeidx, :, :].filled()*t0
+loss_np = data['LOSS_NP'][timeidx, :, :].filled()*t0
+loss_n2p = data['LOSS_N2P'][timeidx, :, :].filled()*t0
+loss_nop = data['LOSS_NOP'][timeidx, :, :].filled()*t0
+nu_op = data['NU_OP'][timeidx, :, :].filled()*t0
+nu_o2p = data['NU_O2P'][timeidx, :, :].filled()*t0
+nu_np = data['NU_NP'][timeidx, :, :].filled()*t0
+nu_n2p = data['NU_N2P'][timeidx, :, :].filled()*t0
+nu_nop = data['NU_NOP'][timeidx, :, :].filled()*t0
+kappa_i = data['KAPPA_I'][timeidx, :, :].filled()*T0**2.5*t0/(n0*kB*H0**2)
+kappa_e = data['KAPPA_E'][timeidx, :, :].filled()*T0**2.5*t0/(n0*kB*H0**2)
+heat_i = data['HEAT_I'][timeidx, :, :].filled()*t0/(n0*kB*T0)
+heat_e = data['HEAT_E'][timeidx, :, :].filled()*t0/(n0*kB*T0)
+qei = data['QEI'][timeidx, :, :].filled()*t0/(n0*kB)
+qin = data['QIN'][timeidx, :, :].filled()*t0/(n0*kB)
+qen = data['QEN'][timeidx, :, :].filled()*t0/(n0*kB)
+op = data['OP'][timeidx, :, :].filled()/n0
+o2p = data['O2P'][timeidx, :, :].filled()/n0
+np = data['NP'][timeidx, :, :].filled()/n0
+n2p = data['N2P'][timeidx, :, :].filled()/n0
+nop = data['NOP'][timeidx, :, :].filled()/n0
+vx = data['VX'][timeidx, :, :].filled()*t0/H0
+vy = data['VY'][timeidx, :, :].filled()*t0/H0
+vz = data['VZ'][timeidx, :, :].filled()*t0/H0
+ti = data['TI'][timeidx, :, :].filled()/T0
+te = data['TE'][timeidx, :, :].filled()/T0
 data.close()
 
-mesh['vdg'] = numpy.zeros((npe,15,ne))
-mesh['udg'] = numpy.zeros((npe,3,ne))
+mesh['vdg'] = numpy.zeros((npe,33,ne))
+mesh['udg'] = numpy.zeros((npe,10,ne))
 for icell in range(ne):
     for inode in range(npe):
-        mesh['vdg'][inode, 0, icell] = BX[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 1, icell] = BY[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 2, icell] = BZ[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 3, icell] = EX[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 4, icell] = EY[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 5, icell] = EZ[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 6, icell] = N[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 10, icell] = T[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 11, icell] = NU[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 12, icell] = UX[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 13, icell] = UY[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 14, icell] = UZ[altidx[inode, icell], nodeidx[inode, icell]]
+        # 0: b.grad(B), 1: tn, 2: ux, 3: uy, 4: uz, 5: bx, 6: by, 7: bz, 8: ex, 9: ey, 10: ez
+        # 11: prod_op, 12: prod_o2p, 13: prod_np, 14: prod_n2p, 15: prod_nop
+        # 16: loss_op, 17: loss_o2p, 18: loss_np, 19: loss_n2p, 20: loss_nop
+        # 21: nu_op, 22: nu_o2p, 23: nu_np, 24: nu_n2p, 25: nu_nop
+        # 26: kappa_i, 27: kappa_e, 28: heat_i, 29: heat_e, 30: qei, 31: qin, 32: qen
+        mesh['vdg'][inode, 1, icell] = tn[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 2, icell] = ux[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 3, icell] = uy[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 4, icell] = uz[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 5, icell] = bx[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 6, icell] = by[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 7, icell] = bz[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 8, icell] = ex[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 9, icell] = ey[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 10, icell] = ez[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 11, icell] = prod_op[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 12, icell] = prod_o2p[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 13, icell] = prod_np[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 14, icell] = prod_n2p[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 15, icell] = prod_nop[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 16, icell] = loss_op[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 17, icell] = loss_o2p[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 18, icell] = loss_np[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 19, icell] = loss_n2p[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 20, icell] = loss_nop[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 21, icell] = nu_op[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 22, icell] = nu_o2p[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 23, icell] = nu_np[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 24, icell] = nu_n2p[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 25, icell] = nu_nop[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 26, icell] = kappa_i[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 27, icell] = kappa_e[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 28, icell] = heat_i[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 29, icell] = heat_e[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 30, icell] = qei[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 31, icell] = qin[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 32, icell] = qen[altidx[inode, icell], nodeidx[inode, icell]]
 
-        mesh['udg'][inode, 0, icell] = VX[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['udg'][inode, 1, icell] = VY[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['udg'][inode, 2, icell] = VZ[altidx[inode, icell], nodeidx[inode, icell]]
-
+        mesh['udg'][inode, 0, icell] = numpy.log(op[altidx[inode, icell], nodeidx[inode, icell]])
+        mesh['udg'][inode, 1, icell] = numpy.log(o2p[altidx[inode, icell], nodeidx[inode, icell]])
+        mesh['udg'][inode, 2, icell] = numpy.log(np[altidx[inode, icell], nodeidx[inode, icell]])
+        mesh['udg'][inode, 3, icell] = numpy.log(n2p[altidx[inode, icell], nodeidx[inode, icell]])
+        mesh['udg'][inode, 4, icell] = numpy.log(nop[altidx[inode, icell], nodeidx[inode, icell]])
+        mesh['udg'][inode, 5, icell] = vx[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['udg'][inode, 6, icell] = vy[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['udg'][inode, 7, icell] = vz[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['udg'][inode, 8, icell] = ti[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['udg'][inode, 9, icell] = te[altidx[inode, icell], nodeidx[inode, icell]]
 
 xpe,telem,xpf,tface,perm = Preprocessing.masternodes(pde['porder'],pde['nd'],1)
 
@@ -156,7 +212,16 @@ shapeg = Preprocessing.mkshape(pde['porder'],xpe,gpe,1)
 for d in range(0,pde['nd']+1):
     shapeg[:,:,d] = shapeg[:,:,d].transpose()
 
-mesh['vdg'][:,7:10,:] = Preprocessing.gradu(shapeg[:,:,1:4], mesh['dgnodes'], numpy.log(mesh['vdg'][:,6,:]))
+# calculate b.grad(B)
+B1 = mesh['vdg'][:,5,:]
+B2 = mesh['vdg'][:,6,:]
+B3 = mesh['vdg'][:,7,:]
+Bmag = numpy.sqrt(B1**2 + B2**2 + B3**2)
+b1 = B1/Bmag
+b2 = B2/Bmag
+b3 = B3/Bmag
+gradB = Preprocessing.gradu(shapeg[:,:,1:4], mesh['dgnodes'], Bmag)
+mesh['vdg'][:,0,:] = b1*gradB[:,0,:] + b2*gradB[:,1,:] + b3*gradB[:,2,:]
 
 # search compilers and set options
 pde = Gencode.setcompilers(pde)
