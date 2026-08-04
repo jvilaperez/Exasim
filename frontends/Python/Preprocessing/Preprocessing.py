@@ -21,6 +21,7 @@ from createdgnodes import createdgnodes
 from facenumbering import facenumbering
 from meshpartitionhdg import meshpartitionhdg
 from gradu import gradu
+from l2eprojection import l2eprojection
 import os, sys, sympy
 from importlib import import_module
 import importlib.util

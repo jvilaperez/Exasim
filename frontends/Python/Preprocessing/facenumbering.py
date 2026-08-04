@@ -41,7 +41,7 @@ def  facenumbering(p,t,elemtype,bndexpr,prdexpr):
     nprd = len(prdexpr);
     if nprd>0:
         f = f.flatten('F');
-        pf = reshape(pf, (dim, nfe*ne), order = 'F');
+        pf = reshape(sum(pf,axis=1)/nvf, (dim, nfe*ne), order = 'F');
         tprd = t.flatten('F');
         # periodic boundary faces are negative
         for i in range(0,nprd):
