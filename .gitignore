@@ -1,5 +1,6 @@
 *.pyc
 *.vtu
+*.nc
 *.m~
 *.py~
 *.jl~
