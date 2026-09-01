@@ -110,10 +110,14 @@ tn = data['TN'][:].filled()/T0
 u1 = data['UN'][:].filled()*t0/H0
 u2 = data['VN'][:].filled()*t0/H0
 u3 = data['WN'][:].filled()*t0/H0
-B1 = data['BX'][:].filled()/B0
-B2 = data['BY'][:].filled()/B0
-B3 = data['BZ'][:].filled()/B0
-Bmag = numpy.sqrt(B1**2 + B2**2 + B3**2)/B0
+B1 = data['BX'][:].filled()
+B2 = data['BY'][:].filled()
+B3 = data['BZ'][:].filled()
+Bmag = numpy.sqrt(B1**2 + B2**2 + B3**2)
+b1 = B1/Bmag
+b2 = B2/Bmag
+b3 = B3/Bmag
+Bmag = Bmag/B0
 E1 = data['EX'][:].filled()*t0/(B0*H0)
 E2 = data['EY'][:].filled()*t0/(B0*H0)
 E3 = data['EZ'][:].filled()*t0/(B0*H0)
@@ -157,8 +161,8 @@ mesh['vdg'] = numpy.zeros((npe,37,ne))
 mesh['udg'] = numpy.zeros((npe,10,ne))
 for icell in range(ne):
     for inode in range(npe):
-        # 0: tn, 1: u1, 2: u2, 3: u3, 4: B1, 5: B2, 6: B3, 7: Bmag, 
-        # 8: Bx, 9: By, 10: Bz, 11: b.grad(Bmag), 12: E1, 13: E2, 14: E3
+        # 0: tn, 1: u1, 2: u2, 3: u3, 4: b1, 5: b2, 6: b3, 7: Bmag
+        # 8: lnBx, 9: lnBy, 10: lnBz, 11: b.grad(lnB), 12: E1, 13: E2, 14: E3
         # 15: prod_op, 16: prod_o2p, 17: prod_np, 18: prod_n2p, 19: prod_nop
         # 20: loss_op, 21: loss_o2p, 22: loss_np, 23: loss_n2p, 24: loss_nop
         # 25: nu_op, 26: nu_o2p, 27: nu_np, 28: nu_n2p, 29: nu_nop
@@ -167,9 +171,9 @@ for icell in range(ne):
         mesh['vdg'][inode, 1, icell] = u1[altidx[inode, icell], nodeidx[inode, icell]]
         mesh['vdg'][inode, 2, icell] = u2[altidx[inode, icell], nodeidx[inode, icell]]
         mesh['vdg'][inode, 3, icell] = u3[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 4, icell] = B1[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 5, icell] = B2[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 6, icell] = B3[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 4, icell] = b1[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 5, icell] = b2[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['vdg'][inode, 6, icell] = b3[altidx[inode, icell], nodeidx[inode, icell]]
         mesh['vdg'][inode, 7, icell] = Bmag[altidx[inode, icell], nodeidx[inode, icell]]
         mesh['vdg'][inode, 12, icell] = E1[altidx[inode, icell], nodeidx[inode, icell]]
         mesh['vdg'][inode, 13, icell] = E2[altidx[inode, icell], nodeidx[inode, icell]]
@@ -217,16 +221,13 @@ shapeg = Preprocessing.mkshape(pde['porder'],xpe,gpe,1)
 for d in range(0,pde['nd']+1):
     shapeg[:,:,d] = shapeg[:,:,d].transpose()
 
-# calculate b.grad(B)
-B1 = mesh['vdg'][:,4,:]
-B2 = mesh['vdg'][:,5,:]
-B3 = mesh['vdg'][:,6,:]
-Bmag = mesh['vdg'][:,7,:]
-gradB = Preprocessing.gradu(shapeg[:,:,1:4], mesh['dgnodes'], Bmag)
-mesh['vdg'][:,8,:] = gradB[:,0,:]
-mesh['vdg'][:,9,:] = gradB[:,1,:]
-mesh['vdg'][:,10,:] = gradB[:,2,:]
-mesh['vdg'][:,11,:] = (B1*gradB[:,0,:] + B2*gradB[:,1,:] + B3*gradB[:,2,:])/Bmag
+# calculate b.grad(lnB)
+lnB = numpy.log(mesh['vdg'][:,7,:])
+gradlnB = Preprocessing.gradu(shapeg[:,:,1:4], mesh['dgnodes'], lnB)
+mesh['vdg'][:,8,:] = gradlnB[:,0,:]
+mesh['vdg'][:,9,:] = gradlnB[:,1,:]
+mesh['vdg'][:,10,:] = gradlnB[:,2,:]
+mesh['vdg'][:,11,:] = b1*gradlnB[:,0,:] + b2*gradlnB[:,1,:] + b3*gradlnB[:,2,:]
 
 # search compilers and set options
 pde = Gencode.setcompilers(pde)
