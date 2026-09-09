@@ -6,20 +6,28 @@ module input_module
 
   character(len=*),dimension(*),parameter :: varname = &
     (/'OP      ','O2P     ','NP      ','N2P     ','NOP     ', &
-      'NU_OP   ','NU_O2P  ','NU_NP   ','NU_N2P  ','NU_NOP  ', &
+      'UI_ExB  ','VI_ExB  ','WI_ExB  ','PARVEL  ','TI      ','TE      ', &
       'PROD_OP ','PROD_O2P','PROD_NP ','PROD_N2P','PROD_NOP', &
       'LOSS_OP ','LOSS_O2P','LOSS_NP ','LOSS_N2P','LOSS_NOP', &
-      'TI      ','TE      ','TN_ALT  ','KAPPA_I ','KAPPA_E ', &
-      'HEAT_I  ','HEAT_E  ','QEI     ','QIN     ','QEN     ', &
-      'UI      ','VI      ','WI      ', &
-      'EX      ','EY      ','EZ      ', &
-      'UN_ALT  ','VN_ALT  ','WN_ALT  '/)
-  integer,parameter :: nvar = size(varname)
+      'PED     ','QSUM    ','EX      ','EY      ','EZ      ', &
+      'TN      ','UN      ','VN      ','WN      ', &
+      'O2_CM3  ','O1_CM3  ','HE_CM3  ','N2_CM3  '/)
+  integer,parameter :: nvar = size(varname), &
+    iop = 1, io2p = 2, inp = 3, in2p = 4, inop = 5, &
+    iv1 = 6, iv2 = 7, iv3 = 8, ivp = 9, iti = 10, ite = 11, &
+    iprod_op = 12, iprod_o2p = 13, &
+    iprod_np = 14, iprod_n2p = 15, iprod_nop = 16, &
+    iloss_op = 17, iloss_o2p = 18, &
+    iloss_np = 19, iloss_n2p = 20, iloss_nop = 21, &
+    iped = 22, iqsum = 23, ie1 = 24, ie2 = 25, ie3 = 26, &
+    itn = 27, iu1 = 28, iu2 = 29, iu3 = 30, &
+    io2 = 31, io1 = 32, ihe = 33, in2 = 34
 
-  integer :: nelement,nnode,nalt
+  integer :: nelement,nnode,nlev
   integer,dimension(:,:),allocatable :: elements
-  real(kind=rp),dimension(:),allocatable :: alt, &
+  real(kind=rp),dimension(:),allocatable :: &
     nodeGlon,nodeGlat,elementGlon,elementGlat
+  real(kind=rp),dimension(:,:),allocatable :: alt
   real(kind=rp),dimension(:,:,:),allocatable :: variable
 
   contains
@@ -32,16 +40,6 @@ module input_module
     character(len=*),intent(in) :: filename
     integer,intent(in) :: timeidx
 
-    real(kind=rp),dimension(nvar),parameter :: varscale = &
-      (/1e6_rp,1e6_rp,1e6_rp,1e6_rp,1e6_rp, &
-        1.0_rp,1.0_rp,1.0_rp,1.0_rp,1.0_rp, &
-        1e6_rp,1e6_rp,1e6_rp,1e6_rp,1e6_rp, &
-        1.0_rp,1.0_rp,1.0_rp,1.0_rp,1.0_rp, &
-        1.0_rp,1.0_rp,1.0_rp,1e-7_rp,1e-7_rp, &
-        1e-7_rp,1e-7_rp,1e-7_rp,1e-7_rp,1e-7_rp, &
-        1e-2_rp,1e-2_rp,1e-2_rp, &
-        1.0_rp,1.0_rp,1.0_rp, &
-        1e-2_rp,1e-2_rp,1e-2_rp/)
     integer :: stat,ncid,dimid,dimlen,varid,ivar
     real(kind=8),dimension(:),allocatable :: values1d
     real(kind=4),dimension(:,:,:),allocatable :: values3d
@@ -72,21 +70,23 @@ module input_module
     stat = nf90_inquire_dimension(ncid,dimid,len=nnode)
     if (stat /= nf90_noerr) call handle_error('nf90_inquire_dimension',stat)
 
-    stat = nf90_inq_dimid(ncid,'alt',dimid)
+    stat = nf90_inq_dimid(ncid,'lev',dimid)
     if (stat /= nf90_noerr) call handle_error('nf90_inq_dimid',stat)
 
-    stat = nf90_inquire_dimension(ncid,dimid,len=nalt)
+    stat = nf90_inquire_dimension(ncid,dimid,len=nlev)
     if (stat /= nf90_noerr) call handle_error('nf90_inquire_dimension',stat)
 
-    allocate(values1d(max(nnode,nelement,nalt)))
-    allocate(values3d(nelement,nalt,1))
+    nlev = nlev-1 ! exclude the filling level for now
+
+    allocate(values1d(max(nnode,nelement,nlev)))
+    allocate(values3d(nelement,nlev,1))
     allocate(elements(3,nelement))
     allocate(nodeGlon(nnode))
     allocate(nodeGlat(nnode))
     allocate(elementGlon(nelement))
     allocate(elementGlat(nelement))
-    allocate(alt(nalt))
-    allocate(variable(nelement,nalt,nvar))
+    allocate(alt(nelement,nlev))
+    allocate(variable(nelement,nlev,nvar))
 
     stat = nf90_inq_varid(ncid,'elementConn',varid)
     if (stat /= nf90_noerr) call handle_error('nf90_inq_varid',stat)
@@ -126,23 +126,24 @@ module input_module
 
     elementGlat = values1d(1:nelement)
 
-    stat = nf90_inq_varid(ncid,'alt',varid)
+    stat = nf90_inq_varid(ncid,'ZG',varid)
     if (stat /= nf90_noerr) call handle_error('nf90_inq_varid',stat)
 
-    stat = nf90_get_var(ncid,varid,values1d(1:nalt))
+    stat = nf90_get_var(ncid,varid,values3d, &
+      start=(/1,1,timeidx/),count=(/nelement,nlev,1/))
     if (stat /= nf90_noerr) call handle_error('nf90_get_var',stat)
 
-    alt = values1d(1:nalt)/100
+    alt = values3d(:,:,1)/100
 
     do ivar = 1,nvar
       stat = nf90_inq_varid(ncid,trim(varname(ivar)),varid)
       if (stat /= nf90_noerr) call handle_error('nf90_inq_varid',stat)
 
       stat = nf90_get_var(ncid,varid,values3d, &
-        start=(/1,1,timeidx/),count=(/nelement,nalt,1/))
+        start=(/1,1,timeidx/),count=(/nelement,nlev,1/))
       if (stat /= nf90_noerr) call handle_error('nf90_get_var',stat)
 
-      variable(:,:,ivar) = values3d(:,:,1)*varscale(ivar)
+      variable(:,:,ivar) = values3d(:,:,1)
     enddo
 
     stat = nf90_close(ncid)

@@ -106,21 +106,10 @@ nalt = data.dimensions['alt'].size
 nnode = data.dimensions['node'].size
 nodeidx = data['nodeidx_out'][:].filled() - 1
 altidx = data['altidx_out'][:].filled() - 1
-tn = data['TN'][:].filled()/T0
-u1 = data['UN'][:].filled()*t0/H0
-u2 = data['VN'][:].filled()*t0/H0
-u3 = data['WN'][:].filled()*t0/H0
-B1 = data['BX'][:].filled()
-B2 = data['BY'][:].filled()
-B3 = data['BZ'][:].filled()
-Bmag = numpy.sqrt(B1**2 + B2**2 + B3**2)
-b1 = B1/Bmag
-b2 = B2/Bmag
-b3 = B3/Bmag
-Bmag = Bmag/B0
-E1 = data['EX'][:].filled()*t0/(B0*H0)
-E2 = data['EY'][:].filled()*t0/(B0*H0)
-E3 = data['EZ'][:].filled()*t0/(B0*H0)
+b1 = data['b1'][:].filled()
+b2 = data['b2'][:].filled()
+b3 = data['b3'][:].filled()
+Bmag = data['B'][:].filled()/B0
 prod_op = data['PROD_OP'][:].filled()*t0/n0
 prod_o2p = data['PROD_O2P'][:].filled()*t0/n0
 prod_np = data['PROD_NP'][:].filled()*t0/n0
@@ -136,26 +125,39 @@ nu_o2p = data['NU_O2P'][:].filled()*t0
 nu_np = data['NU_NP'][:].filled()*t0
 nu_n2p = data['NU_N2P'][:].filled()*t0
 nu_nop = data['NU_NOP'][:].filled()*t0
-kappa_i = data['KAPPA_I'][:].filled()*data['TI'][:].filled()**2.5*t0/(n0*kB*H0**2)
-kappa_e = data['KAPPA_E'][:].filled()*data['TE'][:].filled()**2.5*t0/(n0*kB*H0**2)
+E1 = data['E1'][:].filled()*t0/(B0*H0)
+E2 = data['E2'][:].filled()*t0/(B0*H0)
+E3 = data['E3'][:].filled()*t0/(B0*H0)
 heat_i = data['HEAT_I'][:].filled()*t0/(n0*kB*T0)
 heat_e = data['HEAT_E'][:].filled()*t0/(n0*kB*T0)
 qei = data['QEI'][:].filled()*t0/(n0*kB)
 qin = data['QIN'][:].filled()*t0/(n0*kB)
 qen = data['QEN'][:].filled()*t0/(n0*kB)
+kappa_i = data['KAPPA_I'][:].filled()*T0**2.5*t0/(n0*kB*H0**2)
+kappa_e = data['KAPPA_E'][:].filled()*T0**2.5*t0/(n0*kB*H0**2)
+tn = data['TN'][:].filled()/T0
+u1 = data['U1'][:].filled()*t0/H0
+u2 = data['U2'][:].filled()*t0/H0
+u3 = data['U3'][:].filled()*t0/H0
 op = data['OP'][:].filled()/n0
 o2p = data['O2P'][:].filled()/n0
 np = data['NP'][:].filled()/n0
 n2p = data['N2P'][:].filled()/n0
 nop = data['NOP'][:].filled()/n0
+v1 = data['V1'][:].filled()*t0/H0
+v2 = data['V2'][:].filled()*t0/H0
+v3 = data['V3'][:].filled()*t0/H0
+ti = data['TI'][:].filled()/T0
+te = data['TE'][:].filled()/T0
+data.close()
+
 eden = op + o2p + np + n2p + nop
 nm = op*16 + o2p*32 + np*14 + n2p*28 + nop*30
-phi1 = data['UI'][:].filled()*nm*t0/(n0*H0)
-phi2 = data['VI'][:].filled()*nm*t0/(n0*H0)
-phi3 = data['WI'][:].filled()*nm*t0/(n0*H0)
-pi = data['TI'][:].filled()*eden/(n0*T0)
-pe = data['TE'][:].filled()*eden/(n0*T0)
-data.close()
+phi1 = nm*v1
+phi2 = nm*v2
+phi3 = nm*v3
+pi = eden*ti
+pe = eden*te
 
 mesh['vdg'] = numpy.zeros((npe,37,ne))
 mesh['udg'] = numpy.zeros((npe,10,ne))
@@ -227,7 +229,9 @@ gradlnB = Preprocessing.gradu(shapeg[:,:,1:4], mesh['dgnodes'], lnB)
 mesh['vdg'][:,8,:] = gradlnB[:,0,:]
 mesh['vdg'][:,9,:] = gradlnB[:,1,:]
 mesh['vdg'][:,10,:] = gradlnB[:,2,:]
-mesh['vdg'][:,11,:] = b1*gradlnB[:,0,:] + b2*gradlnB[:,1,:] + b3*gradlnB[:,2,:]
+mesh['vdg'][:,11,:] = (mesh['vdg'][:,4,:]*gradlnB[:,0,:]
+                       + mesh['vdg'][:,5,:]*gradlnB[:,1,:]
+                       + mesh['vdg'][:,6,:]*gradlnB[:,2,:])
 
 # search compilers and set options
 pde = Gencode.setcompilers(pde)

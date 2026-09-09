@@ -64,6 +64,14 @@ def flux(u, q, w, v, x, t, mu, eta):
     nx = opx + o2px + npx + n2px + nopx
     ny = opy + o2py + npy + n2py + nopy
     nz = opz + o2pz + npz + n2pz + nopz
+    ti = pi/ne
+    te = pe/ne
+    tix = (pix - nx*ti)/ne
+    tiy = (piy - ny*ti)/ne
+    tiz = (piz - nz*ti)/ne
+    tex = (pex - nx*te)/ne
+    tey = (pey - ny*te)/ne
+    tez = (pez - nz*te)/ne
 
     fphi11 = phi1**2/nm + lamda*(pi + pe*b1**2)
     fphi12 = phi1*phi2/nm + lamda*pe*b1*b2
@@ -75,13 +83,11 @@ def flux(u, q, w, v, x, t, mu, eta):
     fphi32 = phi3*phi2/nm + lamda*pe*b3*b2
     fphi33 = phi3**2/nm + lamda*(pi + pe*b3**2)
 
-    qi1 = ne*pix - pi*nx
-    qi2 = ne*piy - pi*ny
-    qi3 = ne*piz - pi*nz
-    bqi = b1*qi1 + b2*qi2 + b3*qi3
-    fpi1 = pi*phi1/nm - (gamma_i-1)*kappa_i*b1*bqi/ne**2
-    fpi2 = pi*phi2/nm - (gamma_i-1)*kappa_i*b2*bqi/ne**2
-    fpi3 = pi*phi3/nm - (gamma_i-1)*kappa_i*b3*bqi/ne**2
+    bgti = b1*tix + b2*tiy + b3*tiz
+    ci = (gamma_i-1)*kappa_i*ti**2.5*bgti
+    fpi1 = pi*phi1/nm - ci*b1
+    fpi2 = pi*phi2/nm - ci*b2
+    fpi3 = pi*phi3/nm - ci*b3
 
     Ep1 = E1 + lamda*pex/(omega*ne)
     Ep2 = E2 + lamda*pey/(omega*ne)
@@ -89,13 +95,11 @@ def flux(u, q, w, v, x, t, mu, eta):
     ve1 = (Ep2*b3 - Ep3*b2)/Bmag
     ve2 = (Ep3*b1 - Ep1*b3)/Bmag
     ve3 = (Ep1*b2 - Ep2*b1)/Bmag
-    qe1 = ne*pex - pe*nx
-    qe2 = ne*pey - pe*ny
-    qe3 = ne*pez - pe*nz
-    bqe = b1*qe1 + b2*qe2 + b3*qe3
-    fpe1 = pe*ve1 - (gamma_e-1)*kappa_e*b1*bqe/ne**2
-    fpe2 = pe*ve2 - (gamma_e-1)*kappa_e*b2*bqe/ne**2
-    fpe3 = pe*ve3 - (gamma_e-1)*kappa_e*b3*bqe/ne**2
+    bgte = b1*tex + b2*tey + b3*tez
+    ce = (gamma_e-1)*kappa_e*te**2.5*bgte
+    fpe1 = pe*ve1 - ce*b1
+    fpe2 = pe*ve2 - ce*b2
+    fpe3 = pe*ve3 - ce*b3
 
     f = reshape([op*phi1/nm, o2p*phi1/nm, np*phi1/nm, n2p*phi1/nm, nop*phi1/nm, fphi11, fphi12, fphi13, fpi1, fpe1,
                  op*phi2/nm, o2p*phi2/nm, np*phi2/nm, n2p*phi2/nm, nop*phi2/nm, fphi21, fphi22, fphi23, fpi2, fpe2,
@@ -133,7 +137,7 @@ def source(u, q, w, v, x, t, mu, eta):
     lnBx = v[8]
     lnBy = v[9]
     lnBz = v[10]
-    bgradlnB = v[11] # b.grad(lnB)
+    bglnB = v[11] # b.grad(lnB)
     E1 = v[12]
     E2 = v[13]
     E3 = v[14]
@@ -202,6 +206,17 @@ def source(u, q, w, v, x, t, mu, eta):
     nx = opx + o2px + npx + n2px + nopx
     ny = opy + o2py + npy + n2py + nopy
     nz = opz + o2pz + npz + n2pz + nopz
+    vi1 = phi1/nm
+    vi2 = phi2/nm
+    vi3 = phi3/nm
+    ti = pi/ne
+    te = pe/ne
+    tix = (pix - nx*ti)/ne
+    tiy = (piy - ny*ti)/ne
+    tiz = (piz - nz*ti)/ne
+    tex = (pex - nx*te)/ne
+    tey = (pey - ny*te)/ne
+    tez = (pez - nz*te)/ne
 
     net_op = prod_op - loss_op*op
     net_o2p = prod_o2p - loss_o2p*o2p
@@ -216,7 +231,7 @@ def source(u, q, w, v, x, t, mu, eta):
     a3 = -g*x3/r
 
     # along magnetic fields: damping + pressure gradient
-    alongb = -dampfac*(phi1*b1 + phi2*b2 + phi3*b3) - 2*lamda*pe*bgradlnB
+    alongb = -dampfac*(phi1*b1 + phi2*b2 + phi3*b3) - 2*lamda*pe*bglnB
 
     # chemical
     chem = m_op*net_op + m_o2p*net_o2p + m_np*net_np + m_n2p*net_n2p + m_nop*net_nop
@@ -236,27 +251,12 @@ def source(u, q, w, v, x, t, mu, eta):
     # chemical heating
     hchem = net_op + net_o2p + net_np + net_n2p + net_nop
 
-    # heat conduction
-    qi1 = ne*pix - pi*nx
-    qi2 = ne*piy - pi*ny
-    qi3 = ne*piz - pi*nz
-    bqi = b1*qi1 + b2*qi2 + b3*qi3
-    hicond = kappa_i*bgradlnB*bqi/ne**2
-    qe1 = ne*pex - pe*nx
-    qe2 = ne*pey - pe*ny
-    qe3 = ne*pez - pe*nz
-    bqe = b1*qe1 + b2*qe2 + b3*qe3
-    hecond = kappa_e*bgradlnB*bqe/ne**2
-
-    # heat transfer
-    hitrans = (ne*heat_i + qei*(pe-pi) - qin*(pi-ne*tn))/ne
-    hetrans = (ne*heat_e - qei*(pe-pi) - qen*(pe-ne*tn))/ne
-
     # mechanical work
     nmx = opx*m_op + o2px*m_o2p + npx*m_np + n2px*m_n2p + nopx*m_nop
     nmy = opy*m_op + o2py*m_o2p + npy*m_np + n2py*m_n2p + nopy*m_nop
     nmz = opz*m_op + o2pz*m_o2p + npz*m_np + n2pz*m_n2p + nopz*m_nop
-    hiwork = -pi*(nm*(phi1x + phi2y + phi3z) - (phi1*nmx + phi2*nmy + phi3*nmz))/nm**2
+    divvi = (phi1x + phi2y + phi3z - nmx*vi1 - nmy*vi2 - nmz*vi3)/nm
+    hiwork = -pi*divvi
     Ep1 = E1 + lamda*pex/(omega*ne)
     Ep2 = E2 + lamda*pey/(omega*ne)
     Ep3 = E3 + lamda*pez/(omega*ne)
@@ -264,10 +264,21 @@ def source(u, q, w, v, x, t, mu, eta):
     ve2 = (Ep3*b1 - Ep1*b3)/Bmag
     ve3 = (Ep1*b2 - Ep2*b1)/Bmag
     det = nx*pey*b3 + ny*pez*b1 + nz*pex*b2 - nx*pez*b2 - ny*pex*b3 - nz*pey*b1
-    hework = pe*(lamda*det/(omega*ne**2*Bmag) + 2*(ve1*lnBx + ve2*lnBy + ve3*lnBz))
+    divve = -lamda*det/(omega*ne**2*Bmag) - 2*(ve1*lnBx + ve2*lnBy + ve3*lnBz)
+    hework = -pe*divve
 
-    source_pi = pi*hchem/ne + (gamma_i-1)*(hicond + hitrans + hiwork)
-    source_pe = pe*hchem/ne + (gamma_e-1)*(hecond + hetrans + hework)
+    # heat conduction
+    bgti = b1*tix + b2*tiy + b3*tiz
+    hicond = kappa_i*ti**2.5*bglnB*bgti
+    bgte = b1*tex + b2*tey + b3*tez
+    hecond = kappa_e*te**2.5*bglnB*bgte
+
+    # heat transfer
+    hitrans = (ne*heat_i + qei*(pe-pi) - qin*(pi-ne*tn))/ne
+    hetrans = (ne*heat_e - qei*(pe-pi) - qen*(pe-ne*tn))/ne
+
+    source_pi = pi*hchem/ne + (gamma_i-1)*(hiwork + hicond + hitrans)
+    source_pe = pe*hchem/ne + (gamma_e-1)*(hework + hecond + hetrans)
 
     s = array([net_op, net_o2p, net_np, net_n2p, net_nop,
                source_phi1, source_phi2, source_phi3, source_pi, source_pe])
