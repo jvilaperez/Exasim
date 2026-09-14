@@ -66,15 +66,32 @@ R0 = (Re + hL)/H0
 R1 = (Re + hT)/H0
 G0 = g0*t0**2/H0
 Wrot = wrot*t0
+m_op = 16 # molar mass of O+
+m_o2p = 32 # molar mass of O2+
+m_np = 14 # molar mass of N+
+m_n2p = 28 # molar mass of N2+
+m_nop = 30 # molar mass of NO+
 lamda = kB*T0*t0**2/(mp*H0**2) # ratio between thermal energy and kinetic energy
 omega = e*B0*t0/mp # time scale of gyro motion
-dampfac = 1e-6*t0 # damping factor for numerical stability
+dampfac = 0 # damping factor for numerical stability
+psi_op = 0 # upper boundary O+ number flux
+psi_o2p = 0 # upper boundary O2+ number flux
+psi_np = 0 # upper boundary N+ number flux
+psi_n2p = 0 # upper boundary N2+ number flux
+psi_nop = 0 # upper boundary NO+ number flux
+qi = 0 # upper boundary ion heat flux
+qe = 0 # upper boundary electron heat flux
 
 # earth radius, gravity at earth surface, earth rotation,
 # molar mass of O+, O2+, N+, N2+, NO+,
 # ion adiabatic index, electron adiabatic index,
 # ratio between thermal energy and kinetic energy, time scale of gyro motion
-pde['physicsparam'] = numpy.array([Re/H0, G0, Wrot, 16, 32, 14, 28, 30, 5/3, 5/3, lamda, omega, dampfac])
+# damping factor for numerical stability,
+# upper boundary number flux of O+, O2+, N+, N2+, NO+
+# upper boundary ion heat flux, upper boundary electron heat flux
+pde['physicsparam'] = numpy.array([Re/H0, G0, Wrot, m_op, m_o2p, m_np, m_n2p, m_nop,
+                                    5/3, 5/3, lamda, omega, dampfac,
+                                    psi_op, psi_o2p, psi_np, psi_n2p, psi_nop, qi, qe])
 
 # Time-stepping parameters
 pde['torder'] = 1;          # time-stepping order of accuracy
@@ -106,10 +123,16 @@ nalt = data.dimensions['alt'].size
 nnode = data.dimensions['node'].size
 nodeidx = data['nodeidx_out'][:].filled() - 1
 altidx = data['altidx_out'][:].filled() - 1
-b1 = data['b1'][:].filled()
-b2 = data['b2'][:].filled()
-b3 = data['b3'][:].filled()
-Bmag = data['B'][:].filled()/B0
+op = data['OP'][:].filled()/n0
+o2p = data['O2P'][:].filled()/n0
+np = data['NP'][:].filled()/n0
+n2p = data['N2P'][:].filled()/n0
+nop = data['NOP'][:].filled()/n0
+v1 = data['V1'][:].filled()*t0/H0
+v2 = data['V2'][:].filled()*t0/H0
+v3 = data['V3'][:].filled()*t0/H0
+ti = data['TI'][:].filled()/T0
+te = data['TE'][:].filled()/T0
 prod_op = data['PROD_OP'][:].filled()*t0/n0
 prod_o2p = data['PROD_O2P'][:].filled()*t0/n0
 prod_np = data['PROD_NP'][:].filled()*t0/n0
@@ -139,80 +162,79 @@ tn = data['TN'][:].filled()/T0
 u1 = data['U1'][:].filled()*t0/H0
 u2 = data['U2'][:].filled()*t0/H0
 u3 = data['U3'][:].filled()*t0/H0
-op = data['OP'][:].filled()/n0
-o2p = data['O2P'][:].filled()/n0
-np = data['NP'][:].filled()/n0
-n2p = data['N2P'][:].filled()/n0
-nop = data['NOP'][:].filled()/n0
-v1 = data['V1'][:].filled()*t0/H0
-v2 = data['V2'][:].filled()*t0/H0
-v3 = data['V3'][:].filled()*t0/H0
-ti = data['TI'][:].filled()/T0
-te = data['TE'][:].filled()/T0
+b1 = data['b1'][:].filled()
+b2 = data['b2'][:].filled()
+b3 = data['b3'][:].filled()
+Bmag = data['B'][:].filled()/B0
 data.close()
 
 eden = op + o2p + np + n2p + nop
-nm = op*16 + o2p*32 + np*14 + n2p*28 + nop*30
+nm = op*m_op + o2p*m_o2p + np*m_np + n2p*m_n2p + nop*m_nop
 phi1 = nm*v1
 phi2 = nm*v2
 phi3 = nm*v3
 pi = eden*ti
 pe = eden*te
 
-mesh['vdg'] = numpy.zeros((npe,37,ne))
 mesh['udg'] = numpy.zeros((npe,10,ne))
+mesh['vdg'] = numpy.zeros((npe,46,ne))
 for icell in range(ne):
     for inode in range(npe):
-        # 0: tn, 1: u1, 2: u2, 3: u3, 4: b1, 5: b2, 6: b3, 7: Bmag
-        # 8: lnBx, 9: lnBy, 10: lnBz, 11: b.grad(lnB), 12: E1, 13: E2, 14: E3
-        # 15: prod_op, 16: prod_o2p, 17: prod_np, 18: prod_n2p, 19: prod_nop
-        # 20: loss_op, 21: loss_o2p, 22: loss_np, 23: loss_n2p, 24: loss_nop
-        # 25: nu_op, 26: nu_o2p, 27: nu_np, 28: nu_n2p, 29: nu_nop
-        # 30: kappa_i, 31: kappa_e, 32: heat_i, 33: heat_e, 34: qei, 35: qin, 36: qen
-        mesh['vdg'][inode, 0, icell] = tn[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 1, icell] = u1[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 2, icell] = u2[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 3, icell] = u3[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 4, icell] = b1[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 5, icell] = b2[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 6, icell] = b3[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 7, icell] = Bmag[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 12, icell] = E1[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 13, icell] = E2[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 14, icell] = E3[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 15, icell] = prod_op[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 16, icell] = prod_o2p[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 17, icell] = prod_np[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 18, icell] = prod_n2p[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 19, icell] = prod_nop[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 20, icell] = loss_op[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 21, icell] = loss_o2p[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 22, icell] = loss_np[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 23, icell] = loss_n2p[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 24, icell] = loss_nop[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 25, icell] = nu_op[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 26, icell] = nu_o2p[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 27, icell] = nu_np[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 28, icell] = nu_n2p[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 29, icell] = nu_nop[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 30, icell] = kappa_i[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 31, icell] = kappa_e[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 32, icell] = heat_i[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 33, icell] = heat_e[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 34, icell] = qei[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 35, icell] = qin[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['vdg'][inode, 36, icell] = qen[altidx[inode, icell], nodeidx[inode, icell]]
+        k = altidx[inode, icell]
+        n = nodeidx[inode, icell]
 
-        mesh['udg'][inode, 0, icell] = op[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['udg'][inode, 1, icell] = o2p[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['udg'][inode, 2, icell] = np[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['udg'][inode, 3, icell] = n2p[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['udg'][inode, 4, icell] = nop[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['udg'][inode, 5, icell] = phi1[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['udg'][inode, 6, icell] = phi2[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['udg'][inode, 7, icell] = phi3[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['udg'][inode, 8, icell] = pi[altidx[inode, icell], nodeidx[inode, icell]]
-        mesh['udg'][inode, 9, icell] = pe[altidx[inode, icell], nodeidx[inode, icell]]
+        mesh['udg'][inode, 0, icell] = op[k, n]
+        mesh['udg'][inode, 1, icell] = o2p[k, n]
+        mesh['udg'][inode, 2, icell] = np[k, n]
+        mesh['udg'][inode, 3, icell] = n2p[k, n]
+        mesh['udg'][inode, 4, icell] = nop[k, n]
+        mesh['udg'][inode, 5, icell] = phi1[k, n]
+        mesh['udg'][inode, 6, icell] = phi2[k, n]
+        mesh['udg'][inode, 7, icell] = phi3[k, n]
+        mesh['udg'][inode, 8, icell] = pi[k, n]
+        mesh['udg'][inode, 9, icell] = pe[k, n]
+
+        # 0: prod_op, 1: prod_o2p, 2: prod_np, 3: prod_n2p, 4: prod_nop
+        # 5: loss_op, 6: loss_o2p, 7: loss_np, 8: loss_n2p, 9: loss_nop
+        # 10: nu_op, 11: nu_o2p, 12: nu_np, 13: nu_n2p, 14: nu_nop
+        # 15: E1, 16: E2, 17: E3, 18: heat_i, 19: heat_e
+        # 20: qei, 21: qin, 22: qen, 23: kappa_i, 24: kappa_e
+        # 25: tn, 26: u1, 27: u2, 28: u3, 29: b1, 30: b2, 31: b3, 32: Bmag
+        # 33: lnBx, 34: lnBy, 35: lnBz, 36: b.grad(lnB)
+        # 37: b1x, 38: b1y, 39: b1z, 40: b2x, 41: b2y, 42: b2z, 43: b3x, 44: b3y, 45: b3z
+        mesh['vdg'][inode, 0, icell] = prod_op[k, n]
+        mesh['vdg'][inode, 1, icell] = prod_o2p[k, n]
+        mesh['vdg'][inode, 2, icell] = prod_np[k, n]
+        mesh['vdg'][inode, 3, icell] = prod_n2p[k, n]
+        mesh['vdg'][inode, 4, icell] = prod_nop[k, n]
+        mesh['vdg'][inode, 5, icell] = loss_op[k, n]
+        mesh['vdg'][inode, 6, icell] = loss_o2p[k, n]
+        mesh['vdg'][inode, 7, icell] = loss_np[k, n]
+        mesh['vdg'][inode, 8, icell] = loss_n2p[k, n]
+        mesh['vdg'][inode, 9, icell] = loss_nop[k, n]
+        mesh['vdg'][inode, 10, icell] = nu_op[k, n]
+        mesh['vdg'][inode, 11, icell] = nu_o2p[k, n]
+        mesh['vdg'][inode, 12, icell] = nu_np[k, n]
+        mesh['vdg'][inode, 13, icell] = nu_n2p[k, n]
+        mesh['vdg'][inode, 14, icell] = nu_nop[k, n]
+        mesh['vdg'][inode, 15, icell] = E1[k, n]
+        mesh['vdg'][inode, 16, icell] = E2[k, n]
+        mesh['vdg'][inode, 17, icell] = E3[k, n]
+        mesh['vdg'][inode, 18, icell] = heat_i[k, n]
+        mesh['vdg'][inode, 19, icell] = heat_e[k, n]
+        mesh['vdg'][inode, 20, icell] = qei[k, n]
+        mesh['vdg'][inode, 21, icell] = qin[k, n]
+        mesh['vdg'][inode, 22, icell] = qen[k, n]
+        mesh['vdg'][inode, 23, icell] = kappa_i[k, n]
+        mesh['vdg'][inode, 24, icell] = kappa_e[k, n]
+        mesh['vdg'][inode, 25, icell] = tn[k, n]
+        mesh['vdg'][inode, 26, icell] = u1[k, n]
+        mesh['vdg'][inode, 27, icell] = u2[k, n]
+        mesh['vdg'][inode, 28, icell] = u3[k, n]
+        mesh['vdg'][inode, 29, icell] = b1[k, n]
+        mesh['vdg'][inode, 30, icell] = b2[k, n]
+        mesh['vdg'][inode, 31, icell] = b3[k, n]
+        mesh['vdg'][inode, 32, icell] = Bmag[k, n]
 
 xpe,telem,xpf,tface,perm = Preprocessing.masternodes(pde['porder'],pde['nd'],1)
 
@@ -223,15 +245,19 @@ shapeg = Preprocessing.mkshape(pde['porder'],xpe,gpe,1)
 for d in range(0,pde['nd']+1):
     shapeg[:,:,d] = shapeg[:,:,d].transpose()
 
+b1 = mesh['vdg'][:,29,:]
+b2 = mesh['vdg'][:,30,:]
+b3 = mesh['vdg'][:,31,:]
+
 # calculate b.grad(lnB)
-lnB = numpy.log(mesh['vdg'][:,7,:])
-gradlnB = Preprocessing.gradu(shapeg[:,:,1:4], mesh['dgnodes'], lnB)
-mesh['vdg'][:,8,:] = gradlnB[:,0,:]
-mesh['vdg'][:,9,:] = gradlnB[:,1,:]
-mesh['vdg'][:,10,:] = gradlnB[:,2,:]
-mesh['vdg'][:,11,:] = (mesh['vdg'][:,4,:]*gradlnB[:,0,:]
-                       + mesh['vdg'][:,5,:]*gradlnB[:,1,:]
-                       + mesh['vdg'][:,6,:]*gradlnB[:,2,:])
+gradlnB = Preprocessing.gradu(shapeg[:,:,1:4], mesh['dgnodes'], numpy.log(mesh['vdg'][:,32,:]))
+mesh['vdg'][:,33:36,:] = gradlnB
+mesh['vdg'][:,36,:] = b1*gradlnB[:,0,:] + b2*gradlnB[:,1,:] + b3*gradlnB[:,2,:]
+
+# calculate grad(b)
+mesh['vdg'][:,37:40,:] = Preprocessing.gradu(shapeg[:,:,1:4], mesh['dgnodes'], b1)
+mesh['vdg'][:,40:43,:] = Preprocessing.gradu(shapeg[:,:,1:4], mesh['dgnodes'], b2)
+mesh['vdg'][:,43:46,:] = Preprocessing.gradu(shapeg[:,:,1:4], mesh['dgnodes'], b3)
 
 # search compilers and set options
 pde = Gencode.setcompilers(pde)

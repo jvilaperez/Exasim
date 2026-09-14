@@ -8,23 +8,23 @@ def mass(u, q, w, v, x, t, mu, eta):
 def flux(u, q, w, v, x, t, mu, eta):
     m_op = mu[3] # molar mass of O+, 16
     m_o2p = mu[4] # molar mass of O2+, 32
-    m_np = mu[5] # molar mass of N+, 28
+    m_np = mu[5] # molar mass of N+, 14
     m_n2p = mu[6] # molar mass of N2+, 28
-    m_nop = mu[7] # molar mass of NO+, 40
+    m_nop = mu[7] # molar mass of NO+, 30
     gamma_i = mu[8] # ion adiabatic index, 5/3
     gamma_e = mu[9] # electron adiabatic index, 5/3
     lamda = mu[10] # kB*T0*t0**2/(mp*H0**2)
     omega = mu[11] # e*B0*t0/mp
 
-    b1 = v[4]
-    b2 = v[5]
-    b3 = v[6]
-    Bmag = v[7]
-    E1 = v[12]
-    E2 = v[13]
-    E3 = v[14]
-    kappa_i = v[30] # ion thermal conduction coefficient
-    kappa_e = v[31] # electron thermal conduction coefficient
+    E1 = v[15]
+    E2 = v[16]
+    E3 = v[17]
+    kappa_i = v[23]
+    kappa_e = v[24]
+    b1 = v[29]
+    b2 = v[30]
+    b3 = v[31]
+    Bmag = v[32]
 
     op = u[0]
     o2p = u[1]
@@ -113,9 +113,9 @@ def source(u, q, w, v, x, t, mu, eta):
     wrot = mu[2] # earth rotation (non-dimensionalized): wrot*t0
     m_op = mu[3] # molar mass of O+, 16
     m_o2p = mu[4] # molar mass of O2+, 32
-    m_np = mu[5] # molar mass of N+, 28
+    m_np = mu[5] # molar mass of N+, 14
     m_n2p = mu[6] # molar mass of N2+, 28
-    m_nop = mu[7] # molar mass of NO+, 40
+    m_nop = mu[7] # molar mass of NO+, 30
     gamma_i = mu[8] # ion adiabatic index, 5/3
     gamma_e = mu[9] # electron adiabatic index, 5/3
     lamda = mu[10] # kB*T0*t0**2/(mp*H0**2)
@@ -126,43 +126,43 @@ def source(u, q, w, v, x, t, mu, eta):
     x2 = x[1]
     x3 = x[2]
 
-    tn = v[0]
-    u1 = v[1]
-    u2 = v[2]
-    u3 = v[3]
-    b1 = v[4]
-    b2 = v[5]
-    b3 = v[6]
-    Bmag = v[7]
-    lnBx = v[8]
-    lnBy = v[9]
-    lnBz = v[10]
-    bglnB = v[11] # b.grad(lnB)
-    E1 = v[12]
-    E2 = v[13]
-    E3 = v[14]
-    prod_op = v[15]
-    prod_o2p = v[16]
-    prod_np = v[17]
-    prod_n2p = v[18]
-    prod_nop = v[19]
-    loss_op = v[20]
-    loss_o2p = v[21]
-    loss_np = v[22]
-    loss_n2p = v[23]
-    loss_nop = v[24]
-    nu_op = v[25]
-    nu_o2p = v[26]
-    nu_np = v[27]
-    nu_n2p = v[28]
-    nu_nop = v[29]
-    kappa_i = v[30]
-    kappa_e = v[31]
-    heat_i = v[32]
-    heat_e = v[33]
-    qei = v[34]
-    qin = v[35]
-    qen = v[36]
+    prod_op = v[0]
+    prod_o2p = v[1]
+    prod_np = v[2]
+    prod_n2p = v[3]
+    prod_nop = v[4]
+    loss_op = v[5]
+    loss_o2p = v[6]
+    loss_np = v[7]
+    loss_n2p = v[8]
+    loss_nop = v[9]
+    nu_op = v[10]
+    nu_o2p = v[11]
+    nu_np = v[12]
+    nu_n2p = v[13]
+    nu_nop = v[14]
+    E1 = v[15]
+    E2 = v[16]
+    E3 = v[17]
+    heat_i = v[18]
+    heat_e = v[19]
+    qei = v[20]
+    qin = v[21]
+    qen = v[22]
+    kappa_i = v[23]
+    kappa_e = v[24]
+    tn = v[25]
+    u1 = v[26]
+    u2 = v[27]
+    u3 = v[28]
+    b1 = v[29]
+    b2 = v[30]
+    b3 = v[31]
+    Bmag = v[32]
+    lnBx = v[33]
+    lnBy = v[34]
+    lnBz = v[35]
+    bglnB = v[36] # b.grad(lnB)
 
     op = u[0]
     o2p = u[1]
@@ -295,36 +295,54 @@ def fbou(u, q, w, v, x, t, mu, eta, uhat, n, tau):
 def fbouhdg(u, q, w, v, x, t, mu, eta, uhat, n, tau):
     m_op = mu[3] # molar mass of O+, 16
     m_o2p = mu[4] # molar mass of O2+, 32
-    m_np = mu[5] # molar mass of N+, 28
+    m_np = mu[5] # molar mass of N+, 14
     m_n2p = mu[6] # molar mass of N2+, 28
-    m_nop = mu[7] # molar mass of NO+, 40
+    m_nop = mu[7] # molar mass of NO+, 30
+    psi_op = mu[13] # O+ number flux at upper boundary
+    psi_o2p = mu[14] # O2+ number flux at upper boundary
+    psi_np = mu[15] # N+ number flux at upper boundary
+    psi_n2p = mu[16] # N2+ number flux at upper boundary
+    psi_nop = mu[17] # NO+ number flux at upper boundary
+    qi = mu[18] # ion heat flux at upper boundary
+    qe = mu[19] # electron heat flux at upper boundary
 
-    tn = v[0]
-    u1 = v[1]
-    u2 = v[2]
-    u3 = v[3]
-    b1 = v[4]
-    b2 = v[5]
-    b3 = v[6]
-    Bmag = v[7]
-    E1 = v[12]
-    E2 = v[13]
-    E3 = v[14]
-    prod_op = v[15]
-    prod_o2p = v[16]
-    prod_np = v[17]
-    prod_n2p = v[18]
-    prod_nop = v[19]
-    loss_op = v[20]
-    loss_o2p = v[21]
-    loss_np = v[22]
-    loss_n2p = v[23]
-    loss_nop = v[24]
-    heat_i = v[32]
-    heat_e = v[33]
-    qei = v[34]
-    qin = v[35]
-    qen = v[36]
+    prod_op = v[0]
+    prod_o2p = v[1]
+    prod_np = v[2]
+    prod_n2p = v[3]
+    prod_nop = v[4]
+    loss_op = v[5]
+    loss_o2p = v[6]
+    loss_np = v[7]
+    loss_n2p = v[8]
+    loss_nop = v[9]
+    E1 = v[15]
+    E2 = v[16]
+    E3 = v[17]
+    heat_i = v[18]
+    heat_e = v[19]
+    qei = v[20]
+    qin = v[21]
+    qen = v[22]
+    kappa_i = v[23]
+    kappa_e = v[24]
+    tn = v[25]
+    u1 = v[26]
+    u2 = v[27]
+    u3 = v[28]
+    b1 = v[29]
+    b2 = v[30]
+    b3 = v[31]
+    Bmag = v[32]
+    b1x = v[37]
+    b1y = v[38]
+    b1z = v[39]
+    b2x = v[40]
+    b2y = v[41]
+    b2z = v[42]
+    b3x = v[43]
+    b3y = v[44]
+    b3z = v[45]
 
     op = u[0]
     o2p = u[1]
@@ -334,78 +352,131 @@ def fbouhdg(u, q, w, v, x, t, mu, eta, uhat, n, tau):
     phi1 = u[5]
     phi2 = u[6]
     phi3 = u[7]
+    pi = u[8]
+    pe = u[9]
 
+    opx = -q[0]
+    o2px = -q[1]
+    npx = -q[2]
+    n2px = -q[3]
+    nopx = -q[4]
     phi1x = -q[5]
     phi2x = -q[6]
     phi3x = -q[7]
+    pix = -q[8]
+    pex = -q[9]
+    opy = -q[10]
+    o2py = -q[11]
+    npy = -q[12]
+    n2py = -q[13]
+    nopy = -q[14]
     phi1y = -q[15]
     phi2y = -q[16]
     phi3y = -q[17]
+    piy = -q[18]
+    pey = -q[19]
+    opz = -q[20]
+    o2pz = -q[21]
+    npz = -q[22]
+    n2pz = -q[23]
+    nopz = -q[24]
     phi1z = -q[25]
     phi2z = -q[26]
     phi3z = -q[27]
+    piz = -q[28]
+    pez = -q[29]
+
+    ophat = uhat[0]
+    o2phat = uhat[1]
+    nphat = uhat[2]
+    n2phat = uhat[3]
+    nophat = uhat[4]
+    phihat1 = uhat[5]
+    phihat2 = uhat[6]
+    phihat3 = uhat[7]
+    pihat = uhat[8]
+    pehat = uhat[9]
 
     ne = op + o2p + np + n2p + nop
     nm = op*m_op + o2p*m_o2p + np*m_np + n2p*m_n2p + nop*m_nop
+    nx = opx + o2px + npx + n2px + nopx
+    ny = opy + o2py + npy + n2py + nopy
+    nz = opz + o2pz + npz + n2pz + nopz
+    nmx = opx*m_op + o2px*m_o2p + npx*m_np + n2px*m_n2p + nopx*m_nop
+    nmy = opy*m_op + o2py*m_o2p + npy*m_np + n2py*m_n2p + nopy*m_nop
+    nmz = opz*m_op + o2pz*m_o2p + npz*m_np + n2pz*m_n2p + nopz*m_nop
+
+    # chemical equilibrium
+    op_eq = prod_op/loss_op
+    o2p_eq = prod_o2p/loss_o2p
+    np_eq = prod_np/loss_np
+    n2p_eq = prod_n2p/loss_n2p
+    nop_eq = prod_nop/loss_nop
+
+    pml = (prod_op*m_op/loss_op
+        + prod_o2p*m_o2p/loss_o2p
+        + prod_np*m_np/loss_np
+        + prod_n2p*m_n2p/loss_n2p
+        + prod_nop*m_nop/loss_nop)
+
+    # thermal equilibrium temperature
+    ne_eq = op_eq + o2p_eq + np_eq + n2p_eq + nop_eq
+    denom = qei*qen + qei*qin + qen*qin
+    pi_eq = ne_eq*((qei+qen)*(heat_i + qin*tn) + qei*(heat_e + qen*tn))/denom
+    pe_eq = ne_eq*((qei+qin)*(heat_e + qen*tn) + qei*(heat_i + qin*tn))/denom
+
+    # Lower boundary: chemical equilibrium, v = u, thermal equilibrium
+    fl = array([ophat - op_eq,
+                o2phat - o2p_eq,
+                nphat - np_eq,
+                n2phat - n2p_eq,
+                nophat - nop_eq,
+                phihat1 - pml*u1,
+                phihat2 - pml*u2,
+                phihat3 - pml*u3,
+                pihat - pi_eq,
+                pehat - pe_eq])
+
+    # Upper boundary:
+    # number flux nv = psi0*b
+    # vperp = ExB/B^2 & d(vpar)/ds = 0
+    # heat flux gradT = q0*b
+    bn = b1*n[0] + b2*n[1] + b3*n[2]
+    phin = phi1*n[0] + phi2*n[1] + phi3*n[2]
+    phihatn = phihat1*n[0] + phihat2*n[1] + phihat3*n[2]
 
     vd1 = (E2*b3 - E3*b2)/Bmag
     vd2 = (E3*b1 - E1*b3)/Bmag
     vd3 = (E1*b2 - E2*b1)/Bmag
+    phihatb = phihat1*b1 + phihat2*b2 + phihat3*b3
+    fperp1 = phihat1 - phihatb*b1 - nm*vd1
+    fperp2 = phihat2 - phihatb*b2 - nm*vd2
+    fperp3 = phihat3 - phihatb*b3 - nm*vd3
 
-    v1 = phi1/nm
-    v2 = phi2/nm
-    v3 = phi3/nm
-    v1x = phi1x/nm
-    v2x = phi2x/nm
-    v3x = phi3x/nm
-    v1y = phi1y/nm
-    v2y = phi2y/nm
-    v3y = phi3y/nm
-    v1z = phi1z/nm
-    v2z = phi2z/nm
-    v3z = phi3z/nm
+    bgphib = (phi1x*b1**2 + phi2x*b1*b2 + phi3x*b1*b3
+            + phi1y*b2*b1 + phi2y*b2**2 + phi3y*b2*b3
+            + phi1z*b3*b1 + phi2z*b3*b2 + phi3z*b3**2)
+    bgbphi = (b1x*b1*phi1 + b2x*b1*phi2 + b3x*b1*phi3
+            + b1y*b2*phi1 + b2y*b2*phi2 + b3y*b2*phi3
+            + b1z*b3*phi1 + b2z*b3*phi2 + b3z*b3*phi3)
+    bgn = nmx*b1 + nmy*b2 + nmz*b3
+    phib = phi1*b1 + phi2*b2 + phi3*b3
+    fpar = bgphib + bgbphi - bgn*phib/nm + tau[5]*(phib-phihatb)
 
-    # thermal equilibrium temperature
-    pi_eq = ne*((qei+qen)*(heat_i + qin*tn) + qei*(heat_e + qen*tn))/(qei*qen + qei*qin + qen*qin)
-    pe_eq = ne*((qei+qin)*(heat_e + qen*tn) + qei*(heat_i + qin*tn))/(qei*qen + qei*qin + qen*qin)
+    ti = pi/ne
+    te = pe/ne
+    gradpin = pix*n[0] + piy*n[1] + piz*n[2]
+    gradpen = pex*n[0] + pey*n[1] + pez*n[2]
+    gradnn = nx*n[0] + ny*n[1] + nz*n[2]
 
-    # Lower boundary:
-    # chemical equilibrium n = P/L
-    # v = u
-    # thermal equilibrium T = t_eq
-    fl = array([prod_op/loss_op - uhat[0],
-                prod_o2p/loss_o2p - uhat[1],
-                prod_np/loss_np - uhat[2],
-                prod_n2p/loss_n2p - uhat[3],
-                prod_nop/loss_nop - uhat[4],
-                nm*u1 - uhat[5], nm*u2 - uhat[6], nm*u3 - uhat[7],
-                pi_eq - uhat[8], pe_eq - uhat[9]])
-
-    # Upper boundary:
-    # chemical equilibrium n = P/L
-    # vperp = ExB/B^2 & d(vpar)/ds = 0
-    # thermal equilibrium T = t_eq
-    vhatb = uhat[5]*b1 + uhat[6]*b2 + uhat[7]*b3
-    fperp1 = uhat[5] - vhatb*b1 - vd1
-    fperp2 = uhat[6] - vhatb*b2 - vd2
-    fperp3 = uhat[7] - vhatb*b3 - vd3
-
-    bGb = (v1x*b1**2 + v2x*b1*b2 + v3x*b1*b3
-            + v1y*b1*b2 + v2y*b2**2 + v3y*b2*b3
-            + v1z*b1*b3 + v2z*b2*b3 + v3z*b3**2)
-    vb = v1*b1 + v2*b2 + v3*b3
-    fpar = bGb + tau[0]*(vb-vhatb)
-    fpar1 = fpar*b1
-    fpar2 = fpar*b2
-    fpar3 = fpar*b3
-
-    fu = array([prod_op/loss_op - uhat[0],
-                prod_o2p/loss_o2p - uhat[1],
-                prod_np/loss_np - uhat[2],
-                prod_n2p/loss_n2p - uhat[3],
-                prod_nop/loss_nop - uhat[4],
-                nm*(fperp1 + fpar1), nm*(fperp2 + fpar2), nm*(fperp3 + fpar3),
-                pi_eq - uhat[8], pe_eq - uhat[9]])
+    fu = array([op*phin + tau[0]*(op*phin - ophat*phihatn) - nm*psi_op*bn,
+                o2p*phin + tau[1]*(o2p*phin - o2phat*phihatn) - nm*psi_o2p*bn,
+                np*phin + tau[2]*(np*phin - nphat*phihatn) - nm*psi_np*bn,
+                n2p*phin + tau[3]*(n2p*phin - n2phat*phihatn) - nm*psi_n2p*bn,
+                nop*phin + tau[4]*(nop*phin - nophat*phihatn) - nm*psi_nop*bn,
+                fperp1 + fpar*b1, fperp2 + fpar*b2, fperp3 + fpar*b3,
+                gradpin-gradnn*ti + tau[8]*(pi-pihat) + ne*qi*bn/(kappa_i*ti**2.5),
+                gradpen-gradnn*te + tau[9]*(pe-pehat) + ne*qe*bn/(kappa_e*te**2.5)])
 
     fb = reshape(hstack(tup=(fl, fu)), shape=(10, 2), order='F')
     return fb
