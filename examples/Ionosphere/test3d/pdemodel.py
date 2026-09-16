@@ -230,8 +230,8 @@ def source(u, q, w, v, x, t, mu, eta):
     a2 = -g*x2/r + wrot**2*x2
     a3 = -g*x3/r
 
-    # along magnetic fields: damping + pressure gradient
-    alongb = -dampfac*(phi1*b1 + phi2*b2 + phi3*b3) - 2*lamda*pe*bglnB
+    # along magnetic fields: damping + pressure gradient (not included for now)
+    alongb = -dampfac*(phi1*b1 + phi2*b2 + phi3*b3) #- 2*lamda*pe*bglnB
 
     # chemical
     chem = m_op*net_op + m_o2p*net_o2p + m_np*net_np + m_n2p*net_n2p + m_nop*net_nop
@@ -267,7 +267,7 @@ def source(u, q, w, v, x, t, mu, eta):
     divve = -lamda*det/(omega*ne**2*Bmag) - 2*(ve1*lnBx + ve2*lnBy + ve3*lnBz)
     hework = -pe*divve
 
-    # heat conduction
+    # heat conduction (not included for now)
     bgti = b1*tix + b2*tiy + b3*tiz
     hicond = kappa_i*ti**2.5*bglnB*bgti
     bgte = b1*tex + b2*tey + b3*tez
@@ -277,8 +277,8 @@ def source(u, q, w, v, x, t, mu, eta):
     hitrans = (ne*heat_i + qei*(pe-pi) - qin*(pi-ne*tn))/ne
     hetrans = (ne*heat_e - qei*(pe-pi) - qen*(pe-ne*tn))/ne
 
-    source_pi = pi*hchem/ne + (gamma_i-1)*(hiwork + hicond + hitrans)
-    source_pe = pe*hchem/ne + (gamma_e-1)*(hework + hecond + hetrans)
+    source_pi = pi*hchem/ne + (gamma_i-1)*(hiwork + hitrans)
+    source_pe = pe*hchem/ne + (gamma_e-1)*(hework + hetrans)
 
     s = array([net_op, net_o2p, net_np, net_n2p, net_nop,
                source_phi1, source_phi2, source_phi3, source_pi, source_pe])
@@ -413,11 +413,7 @@ def fbouhdg(u, q, w, v, x, t, mu, eta, uhat, n, tau):
     n2p_eq = prod_n2p/loss_n2p
     nop_eq = prod_nop/loss_nop
 
-    pml = (prod_op*m_op/loss_op
-        + prod_o2p*m_o2p/loss_o2p
-        + prod_np*m_np/loss_np
-        + prod_n2p*m_n2p/loss_n2p
-        + prod_nop*m_nop/loss_nop)
+    nm_eq = op_eq*m_op + o2p_eq*m_o2p + np_eq*m_np + n2p_eq*m_n2p + nop_eq*m_nop
 
     # thermal equilibrium temperature
     ne_eq = op_eq + o2p_eq + np_eq + n2p_eq + nop_eq
@@ -431,9 +427,9 @@ def fbouhdg(u, q, w, v, x, t, mu, eta, uhat, n, tau):
                 nphat - np_eq,
                 n2phat - n2p_eq,
                 nophat - nop_eq,
-                phihat1 - pml*u1,
-                phihat2 - pml*u2,
-                phihat3 - pml*u3,
+                phihat1 - nm_eq*u1,
+                phihat2 - nm_eq*u2,
+                phihat3 - nm_eq*u3,
                 pihat - pi_eq,
                 pehat - pe_eq])
 
@@ -458,10 +454,10 @@ def fbouhdg(u, q, w, v, x, t, mu, eta, uhat, n, tau):
             + phi1z*b3*b1 + phi2z*b3*b2 + phi3z*b3**2)
     bgbphi = (b1x*b1*phi1 + b2x*b1*phi2 + b3x*b1*phi3
             + b1y*b2*phi1 + b2y*b2*phi2 + b3y*b2*phi3
-            + b1z*b3*phi1 + b2z*b3*phi2 + b3z*b3*phi3)
+            + b1z*b3*phi1 + b2z*b3*phi2 + b3z*b3*phi3) # not included for now
     bgn = nmx*b1 + nmy*b2 + nmz*b3
     phib = phi1*b1 + phi2*b2 + phi3*b3
-    fpar = bgphib + bgbphi - bgn*phib/nm + tau[5]*(phib-phihatb)
+    fpar = bgphib - bgn*phib/nm + tau[5]*(phib-phihatb)
 
     ti = pi/ne
     te = pe/ne

@@ -220,7 +220,7 @@ for icell in range(ne):
         mesh['vdg'][inode, 15, icell] = E1[k, n]
         mesh['vdg'][inode, 16, icell] = E2[k, n]
         mesh['vdg'][inode, 17, icell] = E3[k, n]
-        mesh['vdg'][inode, 18, icell] = heat_i[k, n]
+        mesh['vdg'][inode, 18, icell] = 0 # zero out frictional heating (heat_i[k, n]) for now
         mesh['vdg'][inode, 19, icell] = heat_e[k, n]
         mesh['vdg'][inode, 20, icell] = qei[k, n]
         mesh['vdg'][inode, 21, icell] = qin[k, n]
