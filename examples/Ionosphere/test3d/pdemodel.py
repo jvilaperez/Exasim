@@ -471,8 +471,8 @@ def fbouhdg(u, q, w, v, x, t, mu, eta, uhat, n, tau):
                 n2p*phin + tau[3]*(n2p*phin - n2phat*phihatn) - nm*psi_n2p*bn,
                 nop*phin + tau[4]*(nop*phin - nophat*phihatn) - nm*psi_nop*bn,
                 fperp1 + fpar*b1, fperp2 + fpar*b2, fperp3 + fpar*b3,
-                gradpin-gradnn*ti + tau[8]*(pi-pihat) + ne*qi*bn/(kappa_i*ti**2.5),
-                gradpen-gradnn*te + tau[9]*(pe-pehat) + ne*qe*bn/(kappa_e*te**2.5)])
+                gradpin-gradnn*ti + tau[6]*(pi-pihat) + ne*qi*bn/(kappa_i*ti**2.5),
+                gradpen-gradnn*te + tau[7]*(pe-pehat) + ne*qe*bn/(kappa_e*te**2.5)])
 
     fb = reshape(hstack(tup=(fl, fu)), shape=(10, 2), order='F')
     return fb
