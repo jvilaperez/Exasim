@@ -47,6 +47,7 @@ program driver
   real(kind=rp),dimension(3) :: v,vperp
   real(kind=rp),dimension(:,:,:),allocatable :: b,b_int,var_ext_alt,var_ext_mesh,var_int
   integer,dimension(:,:),allocatable :: cellidx_in,nodeidx_in,nodeidx_out,altidx_out
+  real(kind=rp),dimension(:),allocatable :: z_ext,v_ext
   logical,dimension(:),allocatable :: positive
 
   call init_esmf
@@ -63,6 +64,8 @@ program driver
     elements_int,lon_int,lat_int)
   call init_regrid
 
+  allocate(z_ext(nlev))
+  allocate(v_ext(nlev))
   allocate(positive(nlev))
   allocate(b(nnode_int,nalt_int,3))
   allocate(b_int(nnode_int,nalt_int,4))
@@ -93,13 +96,16 @@ program driver
   enddo
 
   do concurrent (ielem = 1:nelement_ext, ivar = 1:nvar_ext)
-    if (any((/iv1_ext,iv2_ext,iv3_ext,ivp,ie1_ext,ie2_ext,ie3_ext,iu1_ext,iu2_ext,iu3_ext/) == ivar)) then
-      var_ext_alt(ielem,:,ivar) = interp1d(alt_int,alt_ext(ielem,:),var_ext(ielem,:,ivar))
+    z_ext = alt_ext(ielem,:)
+    v_ext = var_ext(ielem,:,ivar)
+    if (any((/iv1_ext,iv2_ext,iv3_ext,ivp, &
+              ie1_ext,ie2_ext,ie3_ext, &
+              iu1_ext,iu2_ext,iu3_ext/) == ivar)) then
+      var_ext_alt(ielem,:,ivar) = interp1d(alt_int,z_ext,v_ext)
     else
-      positive = var_ext(ielem,:,ivar) > 0
-      var_ext_alt(ielem,:,ivar) = exp(interp1d( &
-        alt_int,pack(alt_ext(ielem,:),positive), &
-        log(pack(var_ext(ielem,:,ivar),positive))))
+      positive = v_ext > 0
+      var_ext_alt(ielem,:,ivar) = exp(interp1d(alt_int, &
+        pack(z_ext,positive),log(pack(v_ext,positive))))
     endif
   enddo
 
@@ -109,25 +115,25 @@ program driver
 
     do k = 1,nalt_int
       v = rotate_s2c(theta,phi, &
-        (/var_ext_alt(ielem,k,iv1_ext), &
+        (/var_ext_alt(ielem,k,iv3_ext), &
           -var_ext_alt(ielem,k,iv2_ext), &
-          var_ext_alt(ielem,k,iv3_ext)/))
+          var_ext_alt(ielem,k,iv1_ext)/))
       var_ext_alt(ielem,k,iv1_ext) = v(1)
       var_ext_alt(ielem,k,iv2_ext) = v(2)
       var_ext_alt(ielem,k,iv3_ext) = v(3)
 
       v = rotate_s2c(theta,phi, &
-        (/var_ext_alt(ielem,k,ie1_ext), &
+        (/var_ext_alt(ielem,k,ie3_ext), &
           -var_ext_alt(ielem,k,ie2_ext), &
-          var_ext_alt(ielem,k,ie3_ext)/))
+          var_ext_alt(ielem,k,ie1_ext)/))
       var_ext_alt(ielem,k,ie1_ext) = v(1)
       var_ext_alt(ielem,k,ie2_ext) = v(2)
       var_ext_alt(ielem,k,ie3_ext) = v(3)
 
       v = rotate_s2c(theta,phi, &
-        (/var_ext_alt(ielem,k,iu1_ext), &
+        (/var_ext_alt(ielem,k,iu3_ext), &
           -var_ext_alt(ielem,k,iu2_ext), &
-          var_ext_alt(ielem,k,iu3_ext)/))
+          var_ext_alt(ielem,k,iu1_ext)/))
       var_ext_alt(ielem,k,iu1_ext) = v(1)
       var_ext_alt(ielem,k,iu2_ext) = v(2)
       var_ext_alt(ielem,k,iu3_ext) = v(3)

@@ -15,8 +15,8 @@ module calculate_module
     real(kind=rp),intent(in) :: tr,o2,o1,he,n2
     real(kind=rp),intent(out) :: nu_op,nu_o2p,nu_np,nu_n2p,nu_nop
 
-    real(kind=rp) :: sqrttr,lgtr,op_r,o2p_r,n2p_r, &
-      op_nr,o2p_nr,np_nr,n2p_nr,nop_nr
+    real(kind=rp) :: op_nr,o2p_nr,np_nr,n2p_nr,nop_nr, &
+      sqrttr,lgtr,op_r,o2p_r,n2p_r
 
     op_nr  = 6.64_rp*o2              + 1.32_rp*he + 6.82_rp*n2
     o2p_nr =              2.31_rp*o1 + 0.70_rp*he + 4.13_rp*n2
@@ -104,30 +104,32 @@ module calculate_module
     real(kind=rp) :: qin
 
     real(kind=rp),parameter :: ao2 = 1.6_rp, ao1 = 0.89_rp, ahe = 0.21_rp, an2 = 1.76_rp
-    real(kind=rp) :: nonresonant,resonant
+    real(kind=rp) :: op_r,o2p_r,n2p_r,op_nr,o2p_nr,np_nr,n2p_nr,nop_nr
 
-    nonresonant = &
-      op *o2*sqrt(ao2*rmass_o1*rmass_o2/(rmass_o1+rmass_o2)**3)+ &
-      op *he*sqrt(ahe*rmass_o1*rmass_he/(rmass_o1+rmass_he)**3)+ &
-      op *n2*sqrt(an2*rmass_o1*rmass_n2/(rmass_o1+rmass_n2)**3)+ &
-      o2p*o1*sqrt(ao1*rmass_o2*rmass_o1/(rmass_o2+rmass_o1)**3)+ &
-      o2p*he*sqrt(ahe*rmass_o2*rmass_he/(rmass_o2+rmass_he)**3)+ &
-      o2p*n2*sqrt(an2*rmass_o2*rmass_n2/(rmass_o2+rmass_n2)**3)+ &
-      np *o2*sqrt(ao2*rmass_n1*rmass_o2/(rmass_n1+rmass_o2)**3)+ &
-      np *o1*sqrt(ao1*rmass_n1*rmass_o1/(rmass_n1+rmass_o1)**3)+ &
-      np *he*sqrt(ahe*rmass_n1*rmass_he/(rmass_n1+rmass_he)**3)+ &
-      np *n2*sqrt(an2*rmass_n1*rmass_n2/(rmass_n1+rmass_n2)**3)+ &
-      n2p*o2*sqrt(ao2*rmass_n2*rmass_o2/(rmass_n2+rmass_o2)**3)+ &
-      n2p*o1*sqrt(ao1*rmass_n2*rmass_o1/(rmass_n2+rmass_o1)**3)+ &
-      n2p*he*sqrt(ahe*rmass_n2*rmass_he/(rmass_n2+rmass_he)**3)+ &
-      nop*o2*sqrt(ao2*rmass_no*rmass_o2/(rmass_no+rmass_o2)**3)+ &
-      nop*o1*sqrt(ao1*rmass_no*rmass_o1/(rmass_no+rmass_o1)**3)+ &
-      nop*he*sqrt(ahe*rmass_no*rmass_he/(rmass_no+rmass_he)**3)+ &
-      nop*n2*sqrt(an2*rmass_no*rmass_n2/(rmass_no+rmass_n2)**3)
+    op_nr = op*o2*sqrt(ao2*rmass_o1*rmass_o2/(rmass_o1+rmass_o2)**3)+ &
+            op*he*sqrt(ahe*rmass_o1*rmass_he/(rmass_o1+rmass_he)**3)+ &
+            op*n2*sqrt(an2*rmass_o1*rmass_n2/(rmass_o1+rmass_n2)**3)
+    o2p_nr = o2p*o1*sqrt(ao1*rmass_o2*rmass_o1/(rmass_o2+rmass_o1)**3)+ &
+             o2p*he*sqrt(ahe*rmass_o2*rmass_he/(rmass_o2+rmass_he)**3)+ &
+             o2p*n2*sqrt(an2*rmass_o2*rmass_n2/(rmass_o2+rmass_n2)**3)
+    np_nr = np*o2*sqrt(ao2*rmass_n1*rmass_o2/(rmass_n1+rmass_o2)**3)+ &
+            np*o1*sqrt(ao1*rmass_n1*rmass_o1/(rmass_n1+rmass_o1)**3)+ &
+            np*he*sqrt(ahe*rmass_n1*rmass_he/(rmass_n1+rmass_he)**3)+ &
+            np*n2*sqrt(an2*rmass_n1*rmass_n2/(rmass_n1+rmass_n2)**3)
+    n2p_nr = n2p*o2*sqrt(ao2*rmass_n2*rmass_o2/(rmass_n2+rmass_o2)**3)+ &
+             n2p*o1*sqrt(ao1*rmass_n2*rmass_o1/(rmass_n2+rmass_o1)**3)+ &
+             n2p*he*sqrt(ahe*rmass_n2*rmass_he/(rmass_n2+rmass_he)**3)
+    nop_nr = nop*o2*sqrt(ao2*rmass_no*rmass_o2/(rmass_no+rmass_o2)**3)+ &
+             nop*o1*sqrt(ao1*rmass_no*rmass_o1/(rmass_no+rmass_o1)**3)+ &
+             nop*he*sqrt(ahe*rmass_no*rmass_he/(rmass_no+rmass_he)**3)+ &
+             nop*n2*sqrt(an2*rmass_no*rmass_n2/(rmass_no+rmass_n2)**3)
 
-    resonant = 1.4_rp*o2p*o2 + 2.1_rp*op*o1 + 2.7_rp*n2p*n2
+    op_r = 2.1_rp*op*o1
+    o2p_r = 1.4_rp*o2p*o2
+    n2p_r = 2.7_rp*nop*n2
 
-    qin = 6.8e-13_rp*nonresonant + 1e-15_rp*sqrt(2*tr)*resonant
+    qin = 6.8e-13_rp*(op_nr + o2p_nr + np_nr + n2p_nr + nop_nr) + &
+      1e-15_rp*(op_r + o2p_r + n2p_r)*sqrt(2*tr)
 
   endfunction transfer_ion_neutral
 !-----------------------------------------------------------------------
@@ -194,15 +196,15 @@ module calculate_module
 
     sqrtte = sqrt(te)
 
-    q = (2.2_rp + 7.92e-2_rp*sqrtte)*o2 + &
-        1.1_rp*(1 + 5.7e-4_rp*te)*o1 + &
-        5.6_rp*he + &
-        max(0.282_rp - 3.41e-5_rp*te,0.0_rp)*sqrtte*n2
+    q = 1e-16_rp*(2.2_rp + 7.92e-2_rp*sqrtte)*o2 + &
+        1.1e-16_rp*(1 + 5.7e-4_rp*te)*o1 + &
+        5.6e-16_rp*he + &
+        1e-16_rp*max(0.282_rp - 3.41e-5_rp*te,0.0_rp)*sqrtte*n2
 
     if (isclose(ne,0.0_rp)) then
       kappa_e = 0
     else
-      kappa_e = 7.5e21_rp/(1e16_rp + 3.22e4_rp*te**2*q/ne)
+      kappa_e = 7.5e5_rp/(1 + 3.22e4_rp*te**2*q/ne)
     endif
 
   endfunction electron_conductivity
